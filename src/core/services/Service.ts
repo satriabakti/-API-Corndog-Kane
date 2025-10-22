@@ -1,8 +1,9 @@
 import { TOutlet } from "../entities/outlet/outlet";
+import { TRole } from "../entities/user/role";
 import { TUser } from "../entities/user/user";
 import Repository, { PaginationResult, SearchConfig } from "../repositories/Repository";
 
-type TEntity = TUser | TOutlet;
+type TEntity = TUser | TOutlet | TRole;
 
 export class Service<T extends TEntity> {
 	repository: Repository<T>;

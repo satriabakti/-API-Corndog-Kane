@@ -4,3 +4,4 @@
  */
 
 export { UserResponseMapper } from './UserResponseMapper';
+export * from './RoleResponseMapper';

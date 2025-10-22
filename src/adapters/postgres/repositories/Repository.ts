@@ -5,8 +5,9 @@ import { PrismaClient } from "@prisma/client";
 import PostgresAdapter from "../instance";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { getEntityMapper } from "../../../mappers/EntityMappers";
+import { TRole } from "../../../core/entities/user/role";
 
-export type TEntity = TUser | TOutlet;
+export type TEntity = TUser | TOutlet |TRole;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {

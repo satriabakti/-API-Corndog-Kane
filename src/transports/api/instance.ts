@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import router from './routers/index';
+import bodyParser from 'body-parser';
 export default class RestApiTransport{
 
   static app = express();
@@ -12,7 +13,8 @@ export default class RestApiTransport{
     RestApiTransport.app.use(cors());
     RestApiTransport.app.use(helmet());
     RestApiTransport.app.use(morgan(env.app.debug ? 'dev' : 'combined'));
-    RestApiTransport.app.use(express.urlencoded({ extended: true }));
+    // RestApiTransport.app.use(express.urlencoded({ extended: true }));
+    RestApiTransport.app.use(bodyParser.urlencoded({ extended: true }));
     RestApiTransport.app.use('/api', router);
   }
 

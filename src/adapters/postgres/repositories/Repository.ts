@@ -8,8 +8,9 @@ import PostgresAdapter from "../instance";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { getEntityMapper } from "../../../mappers/EntityMappers";
 import { TRole } from "../../../core/entities/user/role";
+import { TCategory, TCategoryWithID } from "../../../core/entities/product/category";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -115,6 +116,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 	}
 
 	protected getModel(): PrismaDelegate<T> {
+		
 		return this.prisma[this.tableName] as unknown as PrismaDelegate<T>;
 	}
 

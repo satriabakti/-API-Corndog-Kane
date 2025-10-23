@@ -4,6 +4,7 @@ import { TRole } from "../entities/user/role";
 import { TUser } from "../entities/user/user";
 import { TEmployee } from "../entities/employee/employee";
 import Repository, { PaginationResult, SearchConfig } from "../repositories/Repository";
+import { TCategory } from "../entities/product/category";
 
 export type TEntity =
 	| TUser
@@ -11,7 +12,8 @@ export type TEntity =
 	| TRole
 	| TEmployee
 	| TOutletAssignment
-	| TOutletWithSettings;
+	| TOutletWithSettings
+	| TCategory;
 
 export class Service<T extends TEntity> {
 	repository: Repository<T>;

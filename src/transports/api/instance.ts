@@ -13,8 +13,8 @@ export default class RestApiTransport{
     RestApiTransport.app.use(cors());
     RestApiTransport.app.use(helmet());
     RestApiTransport.app.use(morgan(env.app.debug ? 'dev' : 'combined'));
-    // RestApiTransport.app.use(express.urlencoded({ extended: true }));
     RestApiTransport.app.use(bodyParser.urlencoded({ extended: true }));
+    RestApiTransport.app.use('/uploads', express.static('public'));
     RestApiTransport.app.use('/api', router);
   }
 

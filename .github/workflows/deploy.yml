@@ -71,7 +71,9 @@ jobs:
             echo "Installing dependencies..."
             npm install
             echo "Running database migrations..."
-            npx prisma migrate dev
+            chmod +x ./node_modules/@prisma/engines/schema-engine-debian-openssl-3.0.x
+
+            npx prisma migrate dev --name init --preview-feature
             echo "Building application..."
             npm run build
             echo "Restarting application with PM2..."

@@ -9,8 +9,9 @@ import { EntityMapper } from "../../../mappers/EntityMapper";
 import { getEntityMapper } from "../../../mappers/EntityMappers";
 import { TRole } from "../../../core/entities/user/role";
 import { TCategory, TCategoryWithID } from "../../../core/entities/product/category";
+import { TSupplier, TSupplierWithID } from "../../../core/entities/suplier/suplier";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier| TSupplierWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -32,7 +33,7 @@ interface PrismaDelegate<T> {
 }
 
 // Type for valid Prisma model names
-type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productCategory" | "productOutlet" | "order" | "orderItem" | "employee" | "payroll" | "suplier" | "material" | "materialIn" | "materialOut";
+type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productCategory" | "productOutlet" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut";
 
 // Field mapping configuration types
 export interface FieldMapping {

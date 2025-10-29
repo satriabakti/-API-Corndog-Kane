@@ -214,7 +214,7 @@ model Payroll {
 }
 // Warehouse and material management models
 
-model suplier {
+model supplier {
   id        Int        @id @default(autoincrement())
   name      String
   phone     String     @unique
@@ -222,7 +222,7 @@ model suplier {
   is_active Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  material  material[]
+  materials  material[]
 
   @@map("supliers")
 }
@@ -230,7 +230,7 @@ model suplier {
 model material {
   id           Int           @id @default(autoincrement())
   suplier_id   Int
-  suplier      suplier       @relation(fields: [suplier_id], references: [id])
+  suplier      supplier       @relation(fields: [suplier_id], references: [id])
   name         String
   is_active    Boolean       @default(true)
   createdAt    DateTime      @default(now())

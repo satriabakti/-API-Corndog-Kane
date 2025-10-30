@@ -49,7 +49,6 @@ export const updateUserSchema = z.object({
     id: z.string({
       message: 'User ID is required'
     })
-    .uuid({ message: 'User ID must be a valid UUID' })
   }),
   body: z.object({
     name: z.string()
@@ -89,7 +88,6 @@ export const getUserByIdSchema = z.object({
     id: z.string({
       message: 'User ID is required'
     })
-    .uuid({ message: 'User ID must be a valid UUID' })
   })
 });
 
@@ -101,7 +99,6 @@ export const deleteUserSchema = z.object({
     id: z.string({
       message: 'User ID is required'
     })
-    .uuid({ message: 'User ID must be a valid UUID' })
   })
 });
 

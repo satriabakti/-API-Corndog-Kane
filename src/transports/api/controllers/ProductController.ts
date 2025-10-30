@@ -1,15 +1,17 @@
 import { Request, Response } from "express";
 import {ProductRepository} from "../../../adapters/postgres/repositories/ProductRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TProductGetResponse, TProductWithID } from "../../../core/entities/product/product";
+import { TProductGetResponse, TProductWithID, TProductInventoryGetResponse, TProductStockInResponse } from "../../../core/entities/product/product";
 import ProductService from "../../../core/services/ProductService";
 import Controller from "./Controller";
 import { ProductResponseMapper } from "../../../mappers/response-mappers/ProductResponseMapper";
+import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
+import { ProductStockInResponseMapper } from "../../../mappers/response-mappers/ProductStockInResponseMapper";
 
 import fs from "fs";
 import path from "path";
 
-export class ProductController extends Controller<TProductGetResponse, TMetadataResponse> {
+export class ProductController extends Controller<TProductGetResponse | TProductStockInResponse | TProductInventoryGetResponse, TMetadataResponse> {
   private productService: ProductService;
 
   constructor() {
@@ -141,4 +143,66 @@ export class ProductController extends Controller<TProductGetResponse, TMetadata
     }
   };
 
+  getStocksList = () => {
+    return async (req: Request, res: Response) => {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { data, total } = await this.productService.getStocksList(page, limit);
+      const mappedResults: TProductInventoryGetResponse[] = data.map(item => 
+        ProductStockResponseMapper.toResponse(item)
+      );
+      
+      const metadata: TMetadataResponse = {
+        page,
+        limit,
+        total_records: total,
+        total_pages: Math.ceil(total / limit),
+      };
+      
+      return this.getSuccessResponse(
+        res,
+        {
+          data: mappedResults,
+          metadata,
+        },
+        "Product stocks inventory retrieved successfully"
+      );
+    };
+  }
+
+  addStockIn = async (req: Request, res: Response) => {
+    try {
+      const { product_id, quantity, unit_quantity } = req.body;
+
+      // Service returns entity (TProductStockIn)
+      const entity = await this.productService.addStockIn({
+        product_id,
+        quantity,
+        unit_quantity,
+      });
+
+      // Map entity to response using mapper
+      const responseData = ProductStockInResponseMapper.toResponse(entity);
+
+      return this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        "Product stock in added successfully"
+      );
+    } catch (error) {
+      console.error("Error adding product stock in:", error);
+      return this.handleError(
+        res,
+        error,
+        "Failed to add product stock in",
+        500,
+        {} as TProductStockInResponse,
+        {} as TMetadataResponse
+      );
+    }
+  }
 }

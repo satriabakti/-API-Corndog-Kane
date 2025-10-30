@@ -190,6 +190,15 @@ POST /api/v1/auth/login
 POST /api/v1/auth/register
 ```
 
+### Inventory (Unified Material & Product)
+```bash
+# Stock In (Batch)
+POST   /api/v1/inventory/in
+
+# Buy List (Material + Product PURCHASE)
+GET    /api/v1/inventory/buy
+```
+
 ### Resources
 ```bash
 # Users
@@ -239,6 +248,8 @@ sudo systemctl stop corndog-kane-api
 - [Detailed Deployment](./DEPLOYMENT.md) - Comprehensive deployment docs
 - [Generator Updates](./GENERATOR_UPDATES.md) - Code generator documentation
 - [Before/After Comparison](./BEFORE_AFTER_COMPARISON.md) - Pattern examples
+- [Inventory Stock In API](./docs/inventory-in-api-reference.md) - Unified stock in endpoint
+- [Inventory Buy List API](./docs/inventory-buy-api-reference.md) - Unified purchase list endpoint
 
 ## 🏗️ Architecture
 

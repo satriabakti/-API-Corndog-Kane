@@ -111,8 +111,32 @@ model Product {
   updatedAt       DateTime        @updatedAt
   product_outlets ProductOutlet[]
   order_items     OrderItem[]
-
+  stocks          ProductStock[] 
   @@map("products")
+}
+enum PRODUCTSOURCE  {
+  PRODUCTION
+  PURCHASE
+}
+model ProductStock{
+  id  Int @id @default(autoincrement())
+  product_id Int
+  products Product @relation(fields: [product_id], references: [id])
+  quantity Int @default(0)
+  date     DateTime
+  source_from PRODUCTSOURCE @default(PRODUCTION)
+
+  detail   ProductStockDetail?
+  @@map("product_stocs")
+}
+model ProductStockDetail{
+  id  Int @id @default(autoincrement())
+  stock_id  Int @unique
+  price     Float
+  supplier_id Int
+  supplier   Supplier @relation(fields: [supplier_id], references: [id])
+  stock     ProductStock @relation(fields: [stock_id],references: [id])
+  @@map("product_stock_detail")
 }
 
 model ProductCategory {
@@ -214,7 +238,7 @@ model Payroll {
 }
 // Warehouse and material management models
 
-model suplier {
+model Supplier {
   id        Int        @id @default(autoincrement())
   name      String
   phone     String     @unique
@@ -222,15 +246,15 @@ model suplier {
   is_active Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  material  material[]
-
+  materials  material[]
+  product ProductStockDetail[]
   @@map("supliers")
 }
 
 model material {
   id           Int           @id @default(autoincrement())
   suplier_id   Int
-  suplier      suplier       @relation(fields: [suplier_id], references: [id])
+  suplier      Supplier       @relation(fields: [suplier_id], references: [id])
   name         String
   is_active    Boolean       @default(true)
   createdAt    DateTime      @default(now())

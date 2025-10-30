@@ -64,3 +64,11 @@ export const deleteProductSchema = z.object({
       .transform(Number),
   }),
 });
+
+export const productStockInSchema = z.object({
+  body: z.object({
+    product_id: z.number().int().positive('Product ID must be a positive integer'),
+    quantity: z.number().positive('Quantity must be a positive number'),
+    unit_quantity: z.string().min(1, 'Unit quantity is required'),
+  }),
+});

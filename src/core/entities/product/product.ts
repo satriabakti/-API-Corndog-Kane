@@ -46,3 +46,87 @@ export type TProductGetResponse = {
   updated_at: string;
 }
 
+// ============================================================================
+// PRODUCT STOCK INVENTORY TYPES - ENTITY LAYER (camelCase)
+// ============================================================================
+
+/**
+ * Product stock in request (PRODUCTION source)
+ */
+export type TProductStockInRequest = {
+  product_id: number;
+  quantity: number;
+  unit_quantity: string;
+}
+
+/**
+ * Product Stock In Entity - Domain entity for stock in records
+ */
+export type TProductStockIn = {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitQuantity: string;
+  currentStock: number;
+  date: Date;
+}
+
+/**
+ * Product Stock Inventory Entity - Domain entity for inventory view
+ */
+export type TProductStockInventory = {
+  id: number;
+  date: string;
+  name: string;
+  firstStockCount: number;
+  stockInCount: number;
+  stockOutCount: number;
+  currentStock: number;
+  unitQuantity: string;
+  updatedAt: Date;
+  inTimes: string;
+  outTimes: string;
+}
+
+// ============================================================================
+// RESPONSE TYPES (snake_case for API)
+// ============================================================================
+
+/**
+ * Product stock in response
+ */
+export type TProductStockInResponse = {
+  id: number;
+  item_type: "PRODUCT";
+  item_name: string;
+  quantity: number;
+  unit_quantity: string;
+  current_stock: number;
+  created_at: string;
+}
+
+/**
+ * Product stock inventory response (API layer - snake_case)
+ * Same format as Material stocks inventory
+ */
+export type TProductInventoryGetResponse = {
+  id: number;
+  date: string;
+  name: string;
+  first_stock_count: number;
+  stock_in_count: number;
+  stock_out_count: number;
+  current_stock: number;
+  unit_quantity: string;
+  updated_at: Date;
+  out_times: string;
+  in_times: string;
+}
+
+/**
+ * @deprecated Use TProductStockInventory instead
+ * Product stock inventory raw data (internal - camelCase)
+ */
+export type ProductInventoryRawData = TProductStockInventory;
+

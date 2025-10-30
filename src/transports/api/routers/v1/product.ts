@@ -4,7 +4,8 @@ import { validate } from '../../validations/validate.middleware';
 import { 
   createProductSchema,
   updateProductSchema,
-  deleteProductSchema
+  deleteProductSchema,
+  productStockInSchema
  } from '../../validations/product.validation';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { ProductController } from '../../controllers/ProductController';
@@ -26,6 +27,21 @@ router.get(
     ProductResponseMapper
   )
 );
+
+// GET stocks inventory
+router.get(
+  "/stock",
+  validate(getPaginationSchema),
+  productController.getStocksList()
+);
+
+// POST stock in with PRODUCTION source
+router.post(
+  "/in",
+  validate(productStockInSchema),
+  productController.addStockIn
+);
+
 router.post(
   "/",
   storage('products')('image_path'),

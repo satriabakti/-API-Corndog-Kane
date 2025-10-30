@@ -7,8 +7,11 @@ import { ProductMapperEntity } from "./mappers/ProductMapperEntity";
 import { EmployeeMapperEntity } from "./mappers/EmployeeMapperEntity";
 import { OutletAssignmentMapperEntity } from "./mappers/OutletAssignmentMapperEntity";
 import { ProductCategoryMapperEntity } from "./mappers/ProductCategoryMapper";
+import { SupplierMapperEntity } from "./mappers/SupplierMapperEntity";
+import { MaterialMapperEntity } from "./mappers/MaterialMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
+  material: MaterialMapperEntity,
   user: UserMapperEntity,
   role: RoleMapperEntity,
   outlet: OutletMapperEntity,
@@ -17,6 +20,7 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
   employee: EmployeeMapperEntity,
   outletEmployee: OutletAssignmentMapperEntity,
   productCategory: ProductCategoryMapperEntity,
+  supplier: SupplierMapperEntity
 };
 
 /**

@@ -10,6 +10,8 @@
 		"start:dev": "nodemon --exec ts-node src/index.ts",
 		"lint": "eslint src --ext .ts",
 		"lint:fix": "eslint src --ext .ts --fix",
+		"generate:resource": "node scripts/create-resource.js",
+		"remove:resource": "node scripts/remove-resource.js",
 		"prisma:generate": "dotenv -e .env -- prisma generate",
 		"prisma:migrate": "dotenv -e .env -- prisma migrate dev",
 		"prisma:studio": "dotenv -e .env -- prisma studio",

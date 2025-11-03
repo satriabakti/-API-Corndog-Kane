@@ -87,13 +87,14 @@ export default class MaterialRepository
 	}
 
 	async createMaterial(data: CreateMaterialInput): Promise<{ id: number }> {
-		return await this.prisma.material.create({
+		const material = await this.getModel().create({
 			data: {
 				name: data.name,
 				suplier_id: data.suplierId,
 				is_active: data.isActive,
 			},
 		});
+		return { id: (material as TMaterialWithID).id };
 	}
 
 	// Stock Out Operations
@@ -108,7 +109,7 @@ export default class MaterialRepository
 	}
 
 	async getMaterialWithStocks(materialId: number): Promise<MaterialWithStocksEntity | null> {
-		const dbRecord = await this.prisma.material.findUnique({
+		const dbRecord = await this.getModel().findUnique({
 			where: { id: materialId },
 			include: {
 				material_in: true,

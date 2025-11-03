@@ -12,8 +12,9 @@ import { TCategory, TCategoryWithID } from "../../../core/entities/product/categ
 import { TSupplier, TSupplierWithID } from "../../../core/entities/suplier/suplier";
 import { TMaterial, TMaterialWithID } from "../../../core/entities/material/material";
 import { TOutletProductRequest, TOutletMaterialRequest } from "../../../core/entities/outlet/request";
+import { TOrder } from "../../../core/entities/order/order";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {

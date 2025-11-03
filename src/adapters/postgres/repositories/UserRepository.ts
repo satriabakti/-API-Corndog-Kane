@@ -22,7 +22,7 @@ export default class UserRepository
 	}
 
 	async updatePassword(id: number, newPassword: string): Promise<void> {
-		await this.prisma.user.update({
+		await this.getModel().update({
 			where: { id },
 			data: { password: newPassword },
 		});

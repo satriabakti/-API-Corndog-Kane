@@ -40,7 +40,7 @@ export default class OutletRepository
   }
 
   override async create(item: TOutletWithSettings & { userId: number }): Promise<TOutletWithSettings> {
-    const outlet = await this.prisma.outlet.create({
+    const outlet = await this.getModel().create({
       data: {
         name: item.name as string,
         is_active: item.isActive as boolean,

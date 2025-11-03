@@ -8,6 +8,7 @@ import { TCategory } from "../entities/product/category";
 import { TSupplier, TSupplierWithID } from "../entities/suplier/suplier";
 import { TMaterial, TMaterialWithID } from "../entities/material/material";
 import { TOutletProductRequest, TOutletMaterialRequest } from "../entities/outlet/request";
+import { TOrder } from "../entities/order/order";
 
 export type TEntity =
 	| TUser
@@ -23,6 +24,7 @@ export type TEntity =
 	| TMaterialWithID
 	| TOutletProductRequest
 	| TOutletMaterialRequest
+	| TOrder
 	;
 
 export class Service<T extends TEntity> {

@@ -6,3 +6,4 @@ export * from "./SuplierController";
 export * from './MaterialController';
 export * from './InventoryController';
 export * from './OutletRequestController';
+export * from './OrderController';

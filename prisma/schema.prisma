@@ -191,6 +191,8 @@ model ProductCategory {
 model Order {
   id             Int         @id @default(autoincrement())
   outlet_id      Int
+  outlet_location String
+  invoice_number  String      @unique
   employee_id    Int
   payment_method String
   total_amount   Int

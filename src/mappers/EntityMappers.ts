@@ -11,8 +11,10 @@ import { SupplierMapperEntity } from "./mappers/SupplierMapperEntity";
 import { MaterialMapperEntity } from "./mappers/MaterialMapperEntity";
 import { OutletProductRequestMapperEntity } from "./mappers/OutletProductRequestMapperEntity";
 import { OutletMaterialRequestMapperEntity } from "./mappers/OutletMaterialRequestMapperEntity";
+import { OrderMapperEntity } from "./mappers/OrderMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
+  order: OrderMapperEntity,
   material: MaterialMapperEntity,
   user: UserMapperEntity,
   role: RoleMapperEntity,

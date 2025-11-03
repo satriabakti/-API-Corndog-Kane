@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { TErrorResponse, TMetadataResponse, TResponse } from "../../../core/entities/base/response";
 import { PrismaErrorHandler } from "../../../adapters/postgres/repositories/PrismaErrorHandler";
 import { Service, TEntity } from "../../../core/services/Service";
+import { FilterObject } from "../../../core/repositories/Repository";
 
 type TDataMetadataResponse<T, M> = {
   data: T |T[] |null;
@@ -92,7 +92,7 @@ export default class Controller<T, M> {
 	 * @param mapperClass - Response mapper with toListResponse method
 	 * @returns Express middleware function
 	 */
-	protected createFindAllHandler<E extends TEntity, TResponseItem>(
+	protected createFindAllHandler<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>
 	) {
@@ -116,7 +116,7 @@ export default class Controller<T, M> {
 					pageNum,
 					limitNum,
 					search,
-					filterObj as Record<string, unknown>
+					filterObj as FilterObject
 				);
 
 				const dataMapped = result.data.map((d: E) =>
@@ -133,8 +133,8 @@ export default class Controller<T, M> {
 				return this.getSuccessResponse(
 					res,
 					{
-						data: dataMapped as any,
-						metadata: metadata as any,
+						data: dataMapped as TResponseItem[],
+						metadata: metadata as M,
 					},
 					"Data retrieved successfully"
 				);
@@ -144,13 +144,13 @@ export default class Controller<T, M> {
 					error,
 					"Failed to retrieve data",
 					500,
-					[] as any,
+					[] as TResponseItem[],
 					{
 						page: 1,
 						limit: 10,
 						total_records: 0,
 						total_pages: 0,
-					} as any
+					} as M
 				);
 			}
 		};
@@ -163,7 +163,7 @@ export default class Controller<T, M> {
 	 * @param mapperClass - Response mapper with toListResponse method
 	 * @returns Express middleware function
 	 */
-	findAll<E extends TEntity, TResponseItem>(
+	findAll<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>
 	) {
@@ -177,7 +177,7 @@ export default class Controller<T, M> {
 	 * @param successMessage - Custom success message
 	 * @returns Express middleware function
 	 */
-	protected createCreateHandler<E extends TEntity, TResponseItem>(
+	protected createCreateHandler<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
 		successMessage: string = "Data created successfully"
@@ -190,8 +190,8 @@ export default class Controller<T, M> {
 				return this.getSuccessResponse(
 					res,
 					{
-						data: mapperClass.toListResponse(newEntity) as any,
-						metadata: {} as any,
+						data: mapperClass.toListResponse(newEntity) as TResponseItem,
+						metadata: {} as M,
 					},
 					successMessage
 				);
@@ -201,14 +201,14 @@ export default class Controller<T, M> {
 					error,
 					"Failed to create data",
 					500,
-					{} as any,
-					{} as any
+					{} as TResponseItem,
+					{} as M
 				);
 			}
 		};
 	}
 
-	private convertToCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
+	private convertToCamelCase<TObj extends Record<string, unknown>>(obj: TObj): Record<string, unknown> {
 		const result: Record<string, unknown> = {};
 		
 		for (const key in obj) {
@@ -241,7 +241,7 @@ export default class Controller<T, M> {
 	 * @param successMessage - Custom success message (optional)
 	 * @returns Express middleware function
 	 */
-	create<E extends TEntity, TResponseItem>(
+	create<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
 		successMessage: string = "Data created successfully"
@@ -256,7 +256,7 @@ export default class Controller<T, M> {
 	 * @param successMessage - Custom success message
 	 * @returns Express middleware function
 	 */
-	protected createUpdateHandler<E extends TEntity, TResponseItem>(
+	protected createUpdateHandler<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
 		successMessage: string = "Data updated successfully"
@@ -270,7 +270,7 @@ export default class Controller<T, M> {
 				if (!updatedEntity) {
 					return this.getFailureResponse(
 						res,
-						{ data: {} as any, metadata: {} as any },
+						{ data: {} as TResponseItem, metadata: {} as M },
 						[{ field: 'id', message: 'Data not found', type: 'not_found' }],
 						'Data not found',
 						404
@@ -280,8 +280,8 @@ export default class Controller<T, M> {
 				return this.getSuccessResponse(
 					res,
 					{
-						data: mapperClass.toListResponse(updatedEntity) as any,
-						metadata: {} as any,
+						data: mapperClass.toListResponse(updatedEntity) as TResponseItem,
+						metadata: {} as M,
 					},
 					successMessage
 				);
@@ -291,8 +291,8 @@ export default class Controller<T, M> {
 					error,
 					"Failed to update data",
 					500,
-					{} as any,
-					{} as any
+					{} as TResponseItem,
+					{} as M
 				);
 			}
 		};
@@ -306,7 +306,7 @@ export default class Controller<T, M> {
 	 * @param successMessage - Custom success message (optional)
 	 * @returns Express middleware function
 	 */
-	update<E extends TEntity, TResponseItem>(
+	update<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
 		successMessage: string = "Data updated successfully"
@@ -332,8 +332,8 @@ export default class Controller<T, M> {
 				return this.getSuccessResponse(
 					res,
 					{
-						data: {} as any,
-						metadata: {} as any,
+						data: {} as T,
+						metadata: {} as M,
 					},
 					successMessage
 				);
@@ -343,8 +343,8 @@ export default class Controller<T, M> {
 					error,
 					"Failed to delete data",
 					500,
-					{} as any,
-					{} as any
+					{} as T,
+					{} as M
 				);
 			}
 		};

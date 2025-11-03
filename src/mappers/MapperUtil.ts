@@ -76,27 +76,27 @@ export class MapperUtil {
   /**
    * Generic mapper for relations with common fields
    */
-  static mapRelation<T>(
-    relation: unknown | null | undefined,
-    mapper: (rel: unknown) => T
-  ): T | null {
+  static mapRelation<TInput, TOutput>(
+    relation: TInput | null | undefined,
+    mapper: (rel: TInput) => TOutput
+  ): TOutput | null {
     return relation ? mapper(relation) : null;
   }
 
   /**
    * Map array of relations
    */
-  static mapRelationArray<T>(
-    relations: unknown[] | null | undefined,
-    mapper: (rel: unknown) => T
-  ): T[] {
+  static mapRelationArray<TInput, TOutput>(
+    relations: TInput[] | null | undefined,
+    mapper: (rel: TInput) => TOutput
+  ): TOutput[] {
     return relations ? relations.map(mapper) : [];
   }
 
   /**
    * Convert domain entity fields to database fields for create/update
    */
-  static toDatabaseFields(domainData: Record<string, unknown>): Record<string, unknown> {
+  static toDatabaseFields<T extends Record<string, unknown>>(domainData: T): Record<string, unknown> {
     const dbData: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(domainData)) {

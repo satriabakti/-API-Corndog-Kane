@@ -5,7 +5,7 @@ import { EntityMapConfig, FieldMapping, RelationMapping } from "../adapters/post
  * EntityMapper class handles all mapping logic from database records to domain entities
  * This class is responsible for transforming raw database data into typed entity objects
  */
-export class EntityMapper<T> {
+export class EntityMapper<T, TDbRecord = Record<string, unknown>> {
   private mapConfig: EntityMapConfig;
 
   constructor(mapConfig: EntityMapConfig) {
@@ -33,9 +33,9 @@ export class EntityMapper<T> {
    * Map database record to entity
    * Main entry point for transforming database records
    */
-  public mapToEntity(dbRecord: unknown): T {
+  public mapToEntity(dbRecord: TDbRecord): T {
     const dbData = dbRecord as Record<string, unknown>;
-    const entity: Record<string, unknown> = {};
+    const entity: Partial<T> = {};
 
     this.mapFields(dbData, entity);
     this.mapRelations(dbData, entity);
@@ -46,7 +46,7 @@ export class EntityMapper<T> {
   /**
    * Map multiple database records to entities
    */
-  public mapToEntities(dbRecords: unknown[]): T[] {
+  public mapToEntities(dbRecords: TDbRecord[]): T[] {
     return dbRecords.map(record => this.mapToEntity(record));
   }
 
@@ -54,10 +54,10 @@ export class EntityMapper<T> {
    * Map database fields to entity fields
    * Iterates through all field mappings and applies transformations
    */
-  private mapFields(dbData: Record<string, unknown>, entity: Record<string, unknown>): void {
+  private mapFields(dbData: Record<string, unknown>, entity: Partial<T>): void {
     for (const fieldMap of this.mapConfig.fields) {
       const dbValue = dbData[fieldMap.dbField];
-      entity[fieldMap.entityField] = this.transformField(dbValue, fieldMap);
+      entity[fieldMap.entityField as keyof T] = this.transformField(dbValue, fieldMap) as T[keyof T];
     }
   }
 
@@ -65,7 +65,7 @@ export class EntityMapper<T> {
    * Transform a single field value
    * Applies custom transform function if provided, otherwise returns raw value
    */
-  private transformField(value: unknown, fieldMap: FieldMapping): unknown {
+  private transformField<TValue>(value: TValue, fieldMap: FieldMapping): TValue | unknown {
     return fieldMap.transform ? fieldMap.transform(value) : value;
   }
 
@@ -73,12 +73,12 @@ export class EntityMapper<T> {
    * Map database relations to entity relations
    * Handles both single relations and relation arrays
    */
-  private mapRelations(dbData: Record<string, unknown>, entity: Record<string, unknown>): void {
+  private mapRelations(dbData: Record<string, unknown>, entity: Partial<T>): void {
     if (!this.mapConfig.relations) return;
 
     for (const relationMap of this.mapConfig.relations) {
       const dbRelation = dbData[relationMap.dbField];
-      entity[relationMap.entityField] = this.transformRelation(dbRelation, relationMap);
+      entity[relationMap.entityField as keyof T] = this.transformRelation(dbRelation, relationMap) as T[keyof T];
     }
   }
 
@@ -86,10 +86,10 @@ export class EntityMapper<T> {
    * Transform a single relation value
    * Uses MapperUtil to handle array or single relation mapping
    */
-  private transformRelation(value: unknown, relationMap: RelationMapping): unknown {
+  private transformRelation<TRel>(value: TRel | TRel[], relationMap: RelationMapping): unknown {
     if (relationMap.isArray) {
-      return MapperUtil.mapRelationArray(value as unknown[], relationMap.mapper);
+      return MapperUtil.mapRelationArray(value as TRel[], relationMap.mapper);
     }
-    return MapperUtil.mapRelation(value, relationMap.mapper);
+    return MapperUtil.mapRelation(value as TRel, relationMap.mapper);
   }
 }

@@ -50,7 +50,14 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
 
     } catch (error) {
       console.error('Login error:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+      return this.handleError(
+        res,
+        error,
+        'Internal server error',
+        500,
+        {} as TLoginResponse,
+        {} as TLoginMetadataResponse
+      );
     }
   }
 

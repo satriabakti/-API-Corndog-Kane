@@ -1,6 +1,5 @@
 import { TEmployee } from "../entities/employee/employee";
 import Repository from "./Repository";
 
-// export interface EmployeeRepository extends Repository<TEmployee> {
-// }
-export type EmployeeRepository = Repository<TEmployee> 
+export interface EmployeeRepository extends Repository<TEmployee> {
+} 

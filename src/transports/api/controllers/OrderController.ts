@@ -7,6 +7,7 @@ import { OrderResponseMapper } from "../../../mappers/response-mappers/OrderResp
 import Controller from "./Controller";
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
+import { getWebSocketInstance } from '../../websocket';
 
 export class OrderController extends Controller<TOrderGetResponse, TMetadataResponse> {
   private orderService: OrderService;
@@ -102,6 +103,23 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
         });
       }
 
+      // Validate required fields
+      if (!payment_method) {
+        return res.status(400).json({
+          metadata: {
+            message: 'payment_method is required',
+          },
+        });
+      }
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          metadata: {
+            message: 'items array is required and must not be empty',
+          },
+        });
+      }
+
       // Convert items format
       const orderItems = items.map(item => ({
         productId: item.product_id,
@@ -116,7 +134,21 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
       );
 
       // Map response
+      console.log(order)
       const response = OrderResponseMapper.toCreateResponse(order);
+      // Fetch full order detail for WebSocket broadcast
+      const fullOrder = await this.orderService.getOrderById(parseInt(order.id));
+      const orderDetailForBroadcast = OrderResponseMapper.toOrderListResponse(fullOrder);
+
+      // Emit new-order event to all connected clients
+      try {
+        const io = getWebSocketInstance();
+        io.emit('new-order', orderDetailForBroadcast);
+        console.log(`📡 WebSocket: Broadcasted new order ${fullOrder.invoice_number}`);
+      } catch (wsError) {
+        console.error('⚠️  WebSocket emit failed:', wsError);
+        // Don't fail the request if WebSocket fails
+      }
 
       return res.status(201).json({
         data: response,
@@ -125,6 +157,7 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
         },
       });
     } catch (error) {
+      console.error('Error creating order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
       return res.status(400).json({
         metadata: {

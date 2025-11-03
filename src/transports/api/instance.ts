@@ -1,13 +1,18 @@
 import express from 'express';
+import { createServer } from 'http';
 import env from '../../configs/env';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import router from './routers/index';
 import bodyParser from 'body-parser';
+import { initializeWebSocket } from '../websocket';
+
 export default class RestApiTransport{
 
   static app = express();
+  static httpServer = createServer(RestApiTransport.app);
+  
   static registerAppsUsed(): void {
     RestApiTransport.app.use(express.json());
     RestApiTransport.app.use(cors());
@@ -19,9 +24,12 @@ export default class RestApiTransport{
   }
 
   static boot() {
-    const app = RestApiTransport.app; 
     RestApiTransport.registerAppsUsed();
-    app.listen(env.transport.http.port, () => {
+    
+    // Initialize WebSocket
+    initializeWebSocket(RestApiTransport.httpServer);
+    
+    RestApiTransport.httpServer.listen(env.transport.http.port, () => {
       console.log(`[RestApi Transport] Server started on port (${env.transport.http.port})`);
     });
     console.log('[RestApi Transport] Booted');

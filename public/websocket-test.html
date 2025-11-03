@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS Real-time Orders Monitor</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .status {
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .status.connected {
+      background: #4CAF50;
+      color: white;
+    }
+    .status.disconnected {
+      background: #f44336;
+      color: white;
+    }
+    .orders-container {
+      display: grid;
+      gap: 15px;
+    }
+    .order-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+    }
+    .invoice {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #2196F3;
+    }
+    .date {
+      color: #666;
+      font-size: 0.9em;
+    }
+    .total {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+    .category {
+      margin: 10px 0;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      border-left: 4px solid #2196F3;
+    }
+    .category-header {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .category-details {
+      display: flex;
+      justify-content: space-between;
+      color: #666;
+      font-size: 0.9em;
+    }
+    .items-list {
+      margin-top: 8px;
+      padding-left: 15px;
+    }
+    .items-list li {
+      color: #555;
+      margin: 3px 0;
+    }
+    .new-badge {
+      background: #FF5722;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 0.8em;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🍴 POS Real-time Orders Monitor</h1>
+  
+  <div id="status" class="status disconnected">
+    Disconnected
+  </div>
+
+  <div id="orders" class="orders-container">
+    <p style="text-align: center; color: #666;">Waiting for new orders...</p>
+  </div>
+
+  <script>
+    // Connect to WebSocket server
+    const socket = io('http://localhost:3000'); // Change port if needed
+    
+    const statusDiv = document.getElementById('status');
+    const ordersDiv = document.getElementById('orders');
+    const orders = [];
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to WebSocket');
+      statusDiv.textContent = 'Connected - Monitoring new orders';
+      statusDiv.className = 'status connected';
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Disconnected from WebSocket');
+      statusDiv.textContent = 'Disconnected';
+      statusDiv.className = 'status disconnected';
+    });
+
+    socket.on('new-order', (order) => {
+      console.log('📦 New order received:', order);
+      
+      // Add to beginning of array
+      orders.unshift(order);
+      
+      // Keep only last 20 orders
+      if (orders.length > 20) {
+        orders.pop();
+      }
+      
+      renderOrders();
+      
+      // Show notification
+      if (Notification.permission === 'granted') {
+        new Notification('New Order!', {
+          body: `${order.invoice_number} - Rp ${order.total_amount.toLocaleString()}`,
+          icon: '🍴'
+        });
+      }
+    });
+
+    function renderOrders() {
+      if (orders.length === 0) {
+        ordersDiv.innerHTML = '<p style="text-align: center; color: #666;">Waiting for new orders...</p>';
+        return;
+      }
+
+      ordersDiv.innerHTML = orders.map((order, index) => {
+        const categories = Object.keys(order)
+          .filter(key => !['invoice_number', 'date', 'total_amount'].includes(key))
+          .map(categoryName => {
+            const category = order[categoryName];
+            return `
+              <div class="category">
+                <div class="category-header">${categoryName}</div>
+                <div class="category-details">
+                  <span>Qty: ${category.quantity}</span>
+                  <span>Rp ${category.total_amount.toLocaleString()}</span>
+                </div>
+                <ul class="items-list">
+                  ${category.items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          }).join('');
+
+        return `
+          <div class="order-card">
+            <div class="order-header">
+              <div>
+                <div class="invoice">${order.invoice_number} ${index === 0 ? '<span class="new-badge">NEW</span>' : ''}</div>
+                <div class="date">${order.date}</div>
+              </div>
+              <div class="total">Rp ${order.total_amount.toLocaleString()}</div>
+            </div>
+            ${categories}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Request notification permission
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  </script>
+</body>
+</html>

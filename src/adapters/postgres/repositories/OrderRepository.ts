@@ -161,13 +161,33 @@ export default class OrderRepository
 				)
 			);
 
+			// Return mapped entity with items
 			return {
-				...order,
-				items: orderItems,
+				id: order.id.toString(),
+				outletId: order.outlet_id,
+				outletLocation: order.outlet_location,
+				invoiceNumber: order.invoice_number,
+				employeeId: order.employee_id,
+				paymentMethod: order.payment_method,
+				totalAmount: order.total_amount,
+				status: order.status,
+				isActive: order.is_active,
+				createdAt: order.createdAt,
+				updatedAt: order.updatedAt,
+				items: orderItems.map(item => ({
+					id: item.id.toString(),
+					orderId: item.order_id.toString(),
+					productId: item.product_id,
+					quantity: item.quantity,
+					price: item.price,
+					isActive: item.is_active,
+					createdAt: item.createdAt,
+					updatedAt: item.updatedAt,
+				})),
 			};
 		});
 
-		return this.mapper.mapToEntity(result) as TOrderWithItems;
+		return result;
 	}
 
 	/**

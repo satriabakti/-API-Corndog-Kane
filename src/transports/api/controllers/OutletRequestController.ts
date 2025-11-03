@@ -14,9 +14,29 @@ import {
 } from '../../../mappers/response-mappers';
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { TOutletProductRequest, TOutletMaterialRequest } from '../../../core/entities/outlet/request';
+import Controller from './Controller';
+import { TMetadataResponse } from '../../../core/entities/base/response';
+import { 
+  TOutletProductRequestResponse, 
+  TOutletMaterialRequestResponse, 
+  TOutletRequestDetailResponse,
+  TOutletRequestsResponse 
+} from '../../../core/entities/outlet/request';
 
-export class OutletRequestController {
-  constructor(private outletRequestService: OutletRequestService) {}
+// Union type for all possible outlet request response types
+// Using Record<string, unknown> to allow complex nested response structures
+type TOutletRequestResponseTypes = 
+  | TOutletProductRequestResponse 
+  | TOutletMaterialRequestResponse 
+  | TOutletRequestDetailResponse
+  | TOutletRequestsResponse
+  | Record<string, unknown>
+  | null;
+
+export class OutletRequestController extends Controller<TOutletRequestResponseTypes, TMetadataResponse> {
+  constructor(private outletRequestService: OutletRequestService) {
+    super();
+  }
 
   /**
    * Create a new batch request (products and/or materials)
@@ -30,10 +50,12 @@ export class OutletRequestController {
       // Get outlet_id from authenticated user
       const outletId = req.user?.outlet_id;
       if (!outletId) {
-        res.status(400).json({
-          success: false,
-          message: 'Outlet ID not found in user session',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in user session' }],
+          'Outlet ID not found in user session'
+        );
         return;
       }
 
@@ -78,15 +100,21 @@ export class OutletRequestController {
       // Get aggregated requests grouped by outlet
       const result = await this.outletRequestService.getAggregatedRequests(page, limit);
 
-      // Response with aggregated data
-      const response = {
-        success: true,
-        message: 'Requests retrieved successfully',
-        data: result.data,
-        pagination: result.pagination,
+      const metadata: TMetadataResponse = {
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        total_records: result.pagination.total,
+        total_pages: result.pagination.totalPages,
       };
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: result.data,
+          metadata,
+        },
+        'Requests retrieved successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -100,10 +128,12 @@ export class OutletRequestController {
       // Get outlet_id from authenticated user
       const outletId = req.user?.outlet_id;
       if (!outletId) {
-        res.status(400).json({
-          success: false,
-          message: 'Outlet ID not found in user session',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in user session' }],
+          'Outlet ID not found in user session'
+        );
         return;
       }
 
@@ -111,16 +141,19 @@ export class OutletRequestController {
       const result = await this.outletRequestService.getRequestsByOutletId(outletId);
 
       // Map responses
-      const response = {
-        success: true,
-        message: 'Your requests retrieved successfully',
-        data: {
-          product_requests: OutletProductRequestBatchResponseMapper(result.products),
-          material_requests: OutletMaterialRequestBatchResponseMapper(result.materials),
-        },
+      const responseData = {
+        product_requests: OutletProductRequestBatchResponseMapper(result.products),
+        material_requests: OutletMaterialRequestBatchResponseMapper(result.materials),
       };
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Your requests retrieved successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -144,13 +177,16 @@ export class OutletRequestController {
       });
 
       // Map response
-      const response = {
-        success: true,
-        message: 'Product request updated successfully',
-        data: OutletProductRequestResponseMapper(updatedRequest),
-      };
+      const responseData = OutletProductRequestResponseMapper(updatedRequest);
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Product request updated successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -174,13 +210,16 @@ export class OutletRequestController {
       });
 
       // Map response
-      const response = {
-        success: true,
-        message: 'Material request updated successfully',
-        data: OutletMaterialRequestResponseMapper(updatedRequest),
-      };
+      const responseData = OutletMaterialRequestResponseMapper(updatedRequest);
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Material request updated successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -195,10 +234,14 @@ export class OutletRequestController {
 
       await this.outletRequestService.deleteProductRequest(id);
 
-      res.status(200).json({
-        success: true,
-        message: 'Product request deleted successfully',
-      });
+      this.getSuccessResponse(
+        res,
+        {
+          data: null,
+          metadata: {} as TMetadataResponse,
+        },
+        'Product request deleted successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -213,10 +256,14 @@ export class OutletRequestController {
 
       await this.outletRequestService.deleteMaterialRequest(id);
 
-      res.status(200).json({
-        success: true,
-        message: 'Material request deleted successfully',
-      });
+      this.getSuccessResponse(
+        res,
+        {
+          data: null,
+          metadata: {} as TMetadataResponse,
+        },
+        'Material request deleted successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -278,20 +325,23 @@ export class OutletRequestController {
       const allMaterialRequests = [...approvedMaterialRequests, ...newMaterialRequests];
 
       // Map responses
-      const response = {
-        success: true,
-        message: 'Requests processed successfully',
-        data: {
-          approved_product_requests: OutletProductRequestBatchResponseMapper(approvedProductRequests),
-          approved_material_requests: OutletMaterialRequestBatchResponseMapper(approvedMaterialRequests),
-          new_product_requests: OutletProductRequestBatchResponseMapper(newProductRequests),
-          new_material_requests: OutletMaterialRequestBatchResponseMapper(newMaterialRequests),
-          total_products: allProductRequests.length,
-          total_materials: allMaterialRequests.length,
-        },
+      const responseData = {
+        approved_product_requests: OutletProductRequestBatchResponseMapper(approvedProductRequests),
+        approved_material_requests: OutletMaterialRequestBatchResponseMapper(approvedMaterialRequests),
+        new_product_requests: OutletProductRequestBatchResponseMapper(newProductRequests),
+        new_material_requests: OutletMaterialRequestBatchResponseMapper(newMaterialRequests),
+        total_products: allProductRequests.length,
+        total_materials: allMaterialRequests.length,
       };
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Requests processed successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -307,13 +357,16 @@ export class OutletRequestController {
       const rejectedRequest = await this.outletRequestService.rejectProductRequest(id);
 
       // Map response
-      const response = {
-        success: true,
-        message: 'Product request rejected successfully',
-        data: OutletProductRequestResponseMapper(rejectedRequest),
-      };
+      const responseData = OutletProductRequestResponseMapper(rejectedRequest);
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Product request rejected successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -329,13 +382,16 @@ export class OutletRequestController {
       const rejectedRequest = await this.outletRequestService.rejectMaterialRequest(id);
 
       // Map response
-      const response = {
-        success: true,
-        message: 'Material request rejected successfully',
-        data: OutletMaterialRequestResponseMapper(rejectedRequest),
-      };
+      const responseData = OutletMaterialRequestResponseMapper(rejectedRequest);
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Material request rejected successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -350,40 +406,47 @@ export class OutletRequestController {
       const outletId = parseInt(outlet_id);
 
       if (isNaN(outletId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid outlet_id parameter',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'invalid', field: 'outlet_id', message: 'Invalid outlet_id parameter' }],
+          'Invalid outlet_id parameter'
+        );
         return;
       }
 
       // Validate date format (YYYY-MM-DD)
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(date)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid date format. Expected YYYY-MM-DD',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'invalid', field: 'date', message: 'Invalid date format. Expected YYYY-MM-DD' }],
+          'Invalid date format. Expected YYYY-MM-DD'
+        );
         return;
       }
 
       const result = await this.outletRequestService.getDetailedByDateAndOutlet(date, outletId);
 
       // Map responses
-      const response = {
-        success: true,
-        message: 'Detailed requests retrieved successfully',
-        data: {
-          outlet_id: result.outlet_id,
-          outlet_name: result.outlet_name,
-          outlet_location: result.outlet_location,
-          request_date: result.request_date,
-          product_requests: OutletProductRequestBatchResponseMapper(result.product_requests),
-          material_requests: OutletMaterialRequestBatchResponseMapper(result.material_requests),
-        },
+      const responseData = {
+        outlet_id: result.outlet_id,
+        outlet_name: result.outlet_name,
+        outlet_location: result.outlet_location,
+        request_date: result.request_date,
+        product_requests: OutletProductRequestBatchResponseMapper(result.product_requests),
+        material_requests: OutletMaterialRequestBatchResponseMapper(result.material_requests),
       };
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        'Detailed requests retrieved successfully'
+      );
     } catch (error) {
       next(error);
     }
@@ -400,20 +463,25 @@ export class OutletRequestController {
       const outletId = req.user?.outlet_id;
       
       if (!outletId) {
-        res.status(403).json({
-          success: false,
-          message: 'User is not associated with any outlet',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'outlet_id', message: 'User is not associated with any outlet' }],
+          'User is not associated with any outlet',
+          403
+        );
         return;
       }
 
       // Validate date format (YYYY-MM-DD)
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(date)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid date format. Expected YYYY-MM-DD',
-        });
+        this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'invalid', field: 'date', message: 'Invalid date format. Expected YYYY-MM-DD' }],
+          'Invalid date format. Expected YYYY-MM-DD'
+        );
         return;
       }
 
@@ -421,19 +489,22 @@ export class OutletRequestController {
 
       const totalDeleted = result.deletedProductRequests + result.deletedMaterialRequests;
 
-      const response = {
-        success: true,
-        message: `Successfully deleted ${totalDeleted} request(s) for date ${date}`,
-        data: {
-          date,
-          outlet_id: outletId,
-          deleted_product_requests: result.deletedProductRequests,
-          deleted_material_requests: result.deletedMaterialRequests,
-          total_deleted: totalDeleted,
-        },
+      const responseData = {
+        date,
+        outlet_id: outletId,
+        deleted_product_requests: result.deletedProductRequests,
+        deleted_material_requests: result.deletedMaterialRequests,
+        total_deleted: totalDeleted,
       };
 
-      res.status(200).json(response);
+      this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        `Successfully deleted ${totalDeleted} request(s) for date ${date}`
+      );
     } catch (error) {
       next(error);
     }

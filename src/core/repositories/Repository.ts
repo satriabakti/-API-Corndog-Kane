@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // Search configuration for LIKE queries
 export interface SearchConfig {
   field: string;
   value: string;
 }
+
+// Filter value types for repository queries
+export type FilterValue = string | number | boolean | Date | null;
+export type FilterObject = Record<string, FilterValue | FilterValue[]>;
 
 // Pagination result type
 export interface PaginationResult<T> {
@@ -22,7 +24,7 @@ export default interface Repository<T> {
     page?: number, 
     limit?: number, 
     search?: SearchConfig[],
-    filters?: Record<string, unknown>,
+    filters?: FilterObject,
     orderBy?: Record<string, 'asc' | 'desc'>
   ): Promise<PaginationResult<T>>;
   update(id: string, item: Partial<T>): Promise<T>;

@@ -1,11 +1,16 @@
 import { Request, Response } from "express";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TEmployeeGetResponse } from "../../../core/entities/employee/employee";
+import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
 import Controller from "./Controller";
 import EmployeeService from "../../../core/services/EmployeeService";
 import { EmployeeResponseMapper } from "../../../mappers/response-mappers/EmployeeResponseMapper";
+import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
 
-export class EmployeeController extends Controller<TEmployeeGetResponse, TMetadataResponse> {
+// Union type for all possible employee response types
+type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | null;
+
+export class EmployeeController extends Controller<TEmployeeResponseTypes, TMetadataResponse> {
   constructor() {
     super();
   }
@@ -25,10 +30,12 @@ export class EmployeeController extends Controller<TEmployeeGetResponse, TMetada
         );
       }
 
+      const responseData: TEmployeeGetResponse = EmployeeResponseMapper.toListResponse(employee);
+
       return this.getSuccessResponse(
         res,
         { 
-          data: EmployeeResponseMapper.toListResponse(employee), 
+          data: responseData, 
           metadata: {} as TMetadataResponse 
         },
         'Employee retrieved successfully'
@@ -39,7 +46,7 @@ export class EmployeeController extends Controller<TEmployeeGetResponse, TMetada
         error,
         'Failed to retrieve employee',
         500,
-        [] as TEmployeeGetResponse[],
+        [],
         {} as TMetadataResponse
       );
     }
@@ -50,18 +57,26 @@ export class EmployeeController extends Controller<TEmployeeGetResponse, TMetada
       // This endpoint returns all employee-outlet assignments (schedules)
       const schedules = await employeeService.getSchedules();
       
-      return res.status(200).json({
-        success: true,
-        message: 'Employee schedules retrieved successfully',
-        data: schedules,
-      });
+      // Map to proper response type
+      const schedulesResponse: TOutletAssignmentGetResponse[] = schedules.map(schedule =>
+        OutletAssignmentResponseMapper.toListResponse(schedule)
+      );
+      
+      return this.getSuccessResponse(
+        res,
+        {
+          data: schedulesResponse,
+          metadata: {} as TMetadataResponse,
+        },
+        'Employee schedules retrieved successfully'
+      );
     } catch (error) {
       return this.handleError(
         res,
         error,
         'Failed to retrieve employee schedules',
         500,
-        [] as TEmployeeGetResponse[],
+        [],
         {} as TMetadataResponse
       );
     }

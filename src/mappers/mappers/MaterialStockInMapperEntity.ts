@@ -21,6 +21,7 @@ export const MaterialStockInMapperEntity: EntityMapConfig = {
       entityField: 'material',
       isArray: false,
       mapper: (material: unknown) => {
+        // Type assertion after validation - material comes from Prisma include
         const mat = material as { name: string; suplier_id: number; suplier?: { id: number; name: string } };
         return {
           name: mat.name,

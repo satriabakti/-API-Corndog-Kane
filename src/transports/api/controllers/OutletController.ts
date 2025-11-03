@@ -55,7 +55,7 @@ export class OutletController extends Controller<
 			return this.getSuccessResponse(
 				res,
 				{
-					data: dataWithPicName as unknown as TOutletGetResponse,
+					data: dataWithPicName,
 					metadata: metadata,
 				},
 				"Outlets retrieved successfully"
@@ -66,7 +66,7 @@ export class OutletController extends Controller<
 				error,
 				"Failed to retrieve outlets",
 				500,
-				[] as unknown as TOutletGetResponse,
+				[],
 				{} as TMetadataResponse
 			);
 		}
@@ -229,14 +229,14 @@ export class OutletController extends Controller<
 				is_for_one_week
 			);
 
-			const responseData = assignments.map((assignment) =>
+			const responseData: TOutletAssignmentGetResponse[] = assignments.map((assignment) =>
 				OutletAssignmentResponseMapper.toListResponse(assignment)
 			);
 
 			return this.getSuccessResponse(
 				res,
 				{
-					data: responseData as unknown as TOutletGetResponse,
+					data: responseData,
 					metadata: {} as TMetadataResponse,
 				},
 				"Employee assigned to outlet successfully"

@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TOrderGetResponse, TOrderCreateRequest } from "../../../core/entities/order/order";
+import { TOrderGetResponse, TOrderCreateRequest, TOrderListResponse, TOrderDetailResponse } from "../../../core/entities/order/order";
 import OrderService from '../../../core/services/OrderService';
 import OrderRepository from "../../../adapters/postgres/repositories/OrderRepository";
 import { OrderResponseMapper } from "../../../mappers/response-mappers/OrderResponseMapper";
@@ -9,7 +9,13 @@ import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
 import { getWebSocketInstance } from '../../websocket';
 
-export class OrderController extends Controller<TOrderGetResponse, TMetadataResponse> {
+// Union type for all possible order response types (including null for error cases)
+type TOrderResponseTypes = TOrderGetResponse | TOrderListResponse | TOrderDetailResponse | null;
+
+// Extended metadata type for orders
+type TOrderMetadata = TMetadataResponse | { page: number; limit: number; total: number; totalPages: number };
+
+export class OrderController extends Controller<TOrderResponseTypes, TOrderMetadata> {
   private orderService: OrderService;
 
   constructor() {
@@ -28,26 +34,39 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
       const result = await this.orderService.getAllOrders(page, limit);
 
       // Map each order to list response format
-      const data = result.orders.map(order => 
+      const data: TOrderListResponse[] = result.orders.map(order => 
         OrderResponseMapper.toOrderListResponse(order)
       );
 
-      return res.status(200).json({
-        data,
-        metadata: {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
+      const metadata: TMetadataResponse = {
+        page: result.page,
+        limit: result.limit,
+        total_records: result.total,
+        total_pages: result.totalPages,
+      };
+
+      return this.getSuccessResponse(
+        res,
+        {
+          data,
+          metadata,
         },
-      });
+        'Orders retrieved successfully'
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch orders';
-      return res.status(500).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
+      return this.handleError(
+        res,
+        error,
+        'Failed to fetch orders',
+        500,
+        [] as TOrderListResponse[],
+        {
+          page: 1,
+          limit: 10,
+          total_records: 0,
+          total_pages: 0,
+        } as TMetadataResponse
+      );
     }
   }
 
@@ -59,31 +78,36 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
       const orderId = parseInt(req.params.id);
 
       if (isNaN(orderId)) {
-        return res.status(400).json({
-          metadata: {
-            message: 'Invalid order ID',
-          },
-        });
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'invalid', field: 'order_id', message: 'Invalid order ID' }],
+          'Invalid order ID'
+        );
       }
 
       const order = await this.orderService.getOrderById(orderId);
-      const data = OrderResponseMapper.toOrderDetailResponse(order);
+      const data: TOrderDetailResponse = OrderResponseMapper.toOrderDetailResponse(order);
 
-      return res.status(200).json({
-        data,
-        metadata: {
-          message: 'Order retrieved successfully',
+      return this.getSuccessResponse(
+        res,
+        {
+          data,
+          metadata: {} as TMetadataResponse,
         },
-      });
+        'Order retrieved successfully'
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch order';
       const statusCode = error instanceof Error && error.message === 'Order not found' ? 404 : 500;
       
-      return res.status(statusCode).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
+      return this.handleError(
+        res,
+        error,
+        'Failed to fetch order',
+        statusCode,
+        null,
+        {} as TMetadataResponse
+      );
     }
   }
 
@@ -96,28 +120,31 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
       const outletId = req.user?.outlet_id;
 
       if (!outletId) {
-        return res.status(400).json({
-          metadata: {
-            message: 'Outlet ID not found in authentication token',
-          },
-        });
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in authentication token' }],
+          'Outlet ID not found in authentication token'
+        );
       }
 
       // Validate required fields
       if (!payment_method) {
-        return res.status(400).json({
-          metadata: {
-            message: 'payment_method is required',
-          },
-        });
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'payment_method', message: 'payment_method is required' }],
+          'payment_method is required'
+        );
       }
 
       if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({
-          metadata: {
-            message: 'items array is required and must not be empty',
-          },
-        });
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ type: 'required', field: 'items', message: 'items array is required and must not be empty' }],
+          'items array is required and must not be empty'
+        );
       }
 
       // Convert items format
@@ -135,10 +162,10 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
 
       // Map response
       console.log(order)
-      const response = OrderResponseMapper.toCreateResponse(order);
+      const response: TOrderGetResponse = OrderResponseMapper.toCreateResponse(order);
       // Fetch full order detail for WebSocket broadcast
       const fullOrder = await this.orderService.getOrderById(parseInt(order.id));
-      const orderDetailForBroadcast = OrderResponseMapper.toOrderListResponse(fullOrder);
+      const orderDetailForBroadcast: TOrderListResponse = OrderResponseMapper.toOrderListResponse(fullOrder);
 
       // Emit new-order event to all connected clients
       try {
@@ -150,20 +177,24 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
         // Don't fail the request if WebSocket fails
       }
 
-      return res.status(201).json({
-        data: response,
-        metadata: {
-          message: 'Order created successfully',
+      return this.getSuccessResponse(
+        res,
+        {
+          data: response,
+          metadata: {} as TMetadataResponse,
         },
-      });
+        'Order created successfully'
+      );
     } catch (error) {
       console.error('Error creating order:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
-      return res.status(400).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
+      return this.handleError(
+        res,
+        error,
+        'Failed to create order',
+        400,
+        null,
+        {} as TMetadataResponse
+      );
     }
   }
 }

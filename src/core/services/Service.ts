@@ -3,7 +3,7 @@ import { TOutlet, TOutletWithSettings } from "../entities/outlet/outlet";
 import { TRole } from "../entities/user/role";
 import { TUser } from "../entities/user/user";
 import { TEmployee } from "../entities/employee/employee";
-import Repository, { PaginationResult, SearchConfig } from "../repositories/Repository";
+import Repository, { PaginationResult, SearchConfig, FilterObject } from "../repositories/Repository";
 import { TCategory } from "../entities/product/category";
 import { TSupplier, TSupplierWithID } from "../entities/suplier/suplier";
 import { TMaterial, TMaterialWithID } from "../entities/material/material";
@@ -40,7 +40,7 @@ export class Service<T extends TEntity> {
 		page?: number,
 		limit?: number,
 		search?: SearchConfig[],
-		filters?: Record<string, unknown>,
+		filters?: FilterObject,
 		orderBy?: Record<string, 'asc' | 'desc'>
 	): Promise<PaginationResult<T>> {
 		return this.repository.getAll(page, limit, search, filters, orderBy);

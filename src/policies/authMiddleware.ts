@@ -2,12 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { TErrorResponse, TResponse } from '../core/entities/base/response';
 import env from '../configs/env';
+import PostgresAdapter from '../adapters/postgres/instance';
 
 export interface AuthRequest extends Request {
   user?: {
     id: string;
     username: string;
     role: string;
+    outlet_id?: number;
   };
 }
 
@@ -26,7 +28,7 @@ const sendFailureResponse = (
   } as TResponse<null, null>);
 };
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -60,7 +62,24 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       role: string;
     };
 
-    req.user = decoded;
+    // Fetch user's outlet_id from database
+    const prisma = PostgresAdapter.client;
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(decoded.id) },
+      include: {
+        outlets: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    req.user = {
+      ...decoded,
+      outlet_id: user?.outlets?.id,
+    };
+    
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {

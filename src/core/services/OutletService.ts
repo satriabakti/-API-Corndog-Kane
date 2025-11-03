@@ -17,7 +17,7 @@ export default class OutletService extends Service<TOutlet> {
 		const {
 			name,
 			isActive,
-			picName,
+			code,
 			picPhone,
 			location,
 			salary,
@@ -43,7 +43,7 @@ export default class OutletService extends Service<TOutlet> {
 		const newOutlet =  this.repository.create({
 			name,
 			isActive,
-			picName,
+			code,
 			picPhone,
 			location,
 			description,

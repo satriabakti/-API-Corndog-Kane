@@ -11,6 +11,7 @@ import productRouter from './product';
 import supplierRouter from './supplier';
 import materialRouter from './material';
 import inventoryRouter from './inventory';
+import outletRequestRouter from './outletRequest';
 
 const router = express.Router();
 
@@ -36,5 +37,6 @@ router.use('/products', productRouter);
 router.use('/suppliers', supplierRouter);
 router.use('/materials', materialRouter);
 router.use('/inventory', inventoryRouter);
+router.use('/outlet-requests', outletRequestRouter);
 
 export default router;

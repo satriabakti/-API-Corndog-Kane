@@ -11,7 +11,6 @@ import { assignEmployeeToOutletSchema } from "../../validations/outlet-assignmen
 import { OutletController } from '../../controllers/OutletController';
 import OutletService from '../../../../core/services/OutletService';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
-import { OutletResponseMapper } from '../../../../mappers/response-mappers/OutletResponseMapper';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 
 const router = express.Router();
@@ -19,7 +18,7 @@ const router = express.Router();
 const outletController = new OutletController();
 const outletService = new OutletService(new OutletRepository());
 
-router.get('/', validate(getPaginationSchema), outletController.findAll(outletService, OutletResponseMapper));
+router.get('/', validate(getPaginationSchema), outletController.getAllOutlets);
 router.get('/:id',
 validate(getOutletByIdSchema),
 outletController.findById.bind(outletController)

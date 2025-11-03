@@ -8,4 +8,8 @@ export default class EmployeeService extends Service<TEmployee> {
   constructor(repository: EmployeeRepository) {
     super(repository);
   }
+
+  async getSchedules() {
+    return await this.repository.getSchedules();
+  }
 }

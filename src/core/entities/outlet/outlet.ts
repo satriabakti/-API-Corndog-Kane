@@ -4,7 +4,7 @@ export type TOutlet = {
   id: string;
   name: string;
   location: string;
-  picName: string;
+  code: string;
   picPhone: string;
   description: string;
   isActive: boolean;
@@ -35,10 +35,10 @@ export type TOutletWithSettings = TOutlet & {
 
 export type TOutletCreateRequest = Omit<
 	TOutletWithSettings,
-	"id" | "createdAt" | "updatedAt" | "isActive" | "picName" | "picPhone" | "checkinTime" | "checkoutTime" 
+	"id" | "createdAt" | "updatedAt" | "isActive" | "code" | "picPhone" | "checkinTime" | "checkoutTime" 
 > & {
 	is_active: boolean;
-	pic_name: string;
+	code: string;
   pic_phone: string;
   setting: {
     checkin_time: string ;
@@ -56,21 +56,23 @@ export type TOutletCreateRequestWithUserId = TOutletCreateRequest & {
 }
 
 
-export type TOutletGetResponse = Omit<TOutlet, 'isActive' | 'createdAt' | 'updatedAt'| 'picName' | 'picPhone'> & {
+export type TOutletGetResponse = Omit<TOutlet, 'isActive' | 'createdAt' | 'updatedAt'| 'code' | 'picPhone'> & {
   is_active: boolean; 
-  pic_name: string;
+  code: string;
+  pic_name: string | null;
   pic_phone: string;
   created_at: Date;
   updated_at: Date;
 }
 
-export type TOutletGetResponseWithSettings = Omit<TOutletWithSettings, 'isActive' | 'createdAt' | 'updatedAt' | 'picName' | 'picPhone' | 'checkinTime' |'checkoutTime'> & {
+export type TOutletGetResponseWithSettings = Omit<TOutletWithSettings, 'isActive' | 'createdAt' | 'updatedAt' | 'code' | 'picPhone' | 'checkinTime' |'checkoutTime'> & {
   checkin_time: string | null;
   checkout_time: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
-  pic_name: string;
+  code: string;
+  pic_name: string | null;
   pic_phone: string;
 }
 
@@ -85,7 +87,7 @@ export type TOutletUpdateRequest = {
   location?: string;
   description?: string;
   is_active?: boolean;
-  pic_name?: string;
+  code?: string;
   pic_phone?: string;
   setting?: TOutletSettingsUpdateRequest;
   user_id?: number;

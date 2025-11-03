@@ -44,5 +44,26 @@ export class EmployeeController extends Controller<TEmployeeGetResponse, TMetada
       );
     }
   };
-}
 
+  getSchedules = async (req: Request, res: Response, employeeService: EmployeeService) => {
+    try {
+      // This endpoint returns all employee-outlet assignments (schedules)
+      const schedules = await employeeService.getSchedules();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Employee schedules retrieved successfully',
+        data: schedules,
+      });
+    } catch (error) {
+      return this.handleError(
+        res,
+        error,
+        'Failed to retrieve employee schedules',
+        500,
+        [] as TEmployeeGetResponse[],
+        {} as TMetadataResponse
+      );
+    }
+  };
+}

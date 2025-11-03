@@ -11,8 +11,9 @@ import { TRole } from "../../../core/entities/user/role";
 import { TCategory, TCategoryWithID } from "../../../core/entities/product/category";
 import { TSupplier, TSupplierWithID } from "../../../core/entities/suplier/suplier";
 import { TMaterial, TMaterialWithID } from "../../../core/entities/material/material";
+import { TOutletProductRequest, TOutletMaterialRequest } from "../../../core/entities/outlet/request";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -34,7 +35,7 @@ interface PrismaDelegate<T> {
 }
 
 // Type for valid Prisma model names
-type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productCategory" | "productOutlet" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut";
+type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productStock" | "productStockDetail" | "productCategory" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut" | "outletProductRequest" | "outletMaterialRequest";
 
 // Field mapping configuration types
 export interface FieldMapping {
@@ -124,10 +125,17 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 
 	async getById(id: string): Promise<T | null> {
 		const model = this.getModel();
+		const numericId = parseInt(id, 10);
+		
+		// Validate that the ID is a valid number
+		if (isNaN(numericId)) {
+			throw new Error(`Invalid ID format: ${id}`);
+		}
+
 		const record = await model.findUnique({
-			where: { id: parseInt(id) },
+			where: { id: numericId },
 			include: this.mapper.getIncludes(),
-		});
+		} as Parameters<typeof model.findUnique>[0]);
 		return record ? this.mapper.mapToEntity(record) : null;
 	}
 

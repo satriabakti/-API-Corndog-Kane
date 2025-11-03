@@ -10,7 +10,7 @@ export const OutletMapperEntity: EntityMapConfig = {
     { dbField: 'name', entityField: 'name' },
     { dbField: 'address', entityField: 'address', transform: (v) => MapperUtil.mapNullableString(v as string | null) },
     { dbField: 'phone', entityField: 'phone', transform: (v) => MapperUtil.mapNullableString(v as string | null) },
-    {dbField:"pic_name", entityField:"picName", transform: (v) => MapperUtil.mapNullableString(v as string | null)},
+    {dbField:"code", entityField:"code", transform: (v) => MapperUtil.mapNullableString(v as string | null)},
     {dbField:"pic_phone", entityField:"picPhone", transform: (v) => MapperUtil.mapNullableString(v as string | null)},
     { dbField: 'description', entityField: 'description', transform: (v) => MapperUtil.mapNullableString(v as string | null) },
     { dbField: 'location', entityField: 'location' },

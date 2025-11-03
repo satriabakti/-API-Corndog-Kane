@@ -13,3 +13,4 @@ export * from './InventoryStockInResponseMapper';
 export * from './InventoryStockInBatchResponseMapper';
 export * from './InventoryBuyListResponseMapper';
 
+export * from './OutletRequestResponseMapper';

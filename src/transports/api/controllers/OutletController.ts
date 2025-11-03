@@ -18,25 +18,83 @@ export class OutletController extends Controller<
 > {
 	private outletService: OutletService;
 	private employeeService: EmployeeService;
+	private outletRepository: OutletRepository;
 
 	constructor() {
 		super();
-		this.outletService = new OutletService(new OutletRepository());
+		this.outletRepository = new OutletRepository();
+		this.outletService = new OutletService(this.outletRepository);
 		this.employeeService = new EmployeeService(new EmployeeRepository());
 	}
+
+	/**
+	 * Get all outlets with pic_name from latest active employee
+	 */
+	getAllOutlets = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+
+			const result = await this.outletService.findAll(page, limit);
+
+			// Fetch pic_name for each outlet
+			const dataWithPicName = await Promise.all(
+				result.data.map(async (outlet) => {
+					const picName = await this.outletRepository.getLatestEmployeeName(parseInt(outlet.id));
+					return OutletResponseMapper.toListResponse(outlet, picName);
+				})
+			);
+
+			const metadata: TMetadataResponse = {
+				page: result.page,
+				limit: result.limit,
+				total_records: result.total,
+				total_pages: result.totalPages,
+			};
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: dataWithPicName as unknown as TOutletGetResponse,
+					metadata: metadata,
+				},
+				"Outlets retrieved successfully"
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to retrieve outlets",
+				500,
+				[] as unknown as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
 
 	findById = async (req: Request, res: Response): Promise<Response> => {
 		const { id } = req.params;
 		const outlet = (await this.outletService.findById(
 			id
 		)) as TOutletWithSettings | null;
+
+		if (!outlet) {
+			return this.getFailureResponse(
+				res,
+				{ data: {} as TOutletGetResponseWithSettings, metadata: {} as TMetadataResponse },
+				[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+				'Outlet not found',
+				404
+			);
+		}
+
+		// Fetch pic_name from latest active employee
+		const picName = await this.outletRepository.getLatestEmployeeName(parseInt(id));
+
 		return this.getSuccessResponse(
 			res,
 			{
-				data:
-					outlet !== null
-						? OutletResponseMapper.toDetailResponse(outlet)
-						: ({} as TOutletGetResponseWithSettings),
+				data: OutletResponseMapper.toDetailResponse(outlet, picName),
 				metadata: {} as TMetadataResponse,
 			},
 			"Outlet retrieved successfully"
@@ -54,7 +112,7 @@ export class OutletController extends Controller<
 				isActive: outletData.is_active,
 				location: outletData.location,
 				name: outletData.name,
-				picName: outletData.pic_name,
+				code: outletData.code,
 				picPhone: outletData.pic_phone,
 				salary: +outletData.setting.salary,
 				user: outletData.user,
@@ -99,7 +157,7 @@ export class OutletController extends Controller<
         isActive: outletData.is_active,
         location: outletData.location,
         name: outletData.name,
-        picName: outletData.pic_name,
+        code: outletData.code,
         picPhone: outletData.pic_phone,
         userId: outletData.user_id,
       })) as TOutletWithSettings;

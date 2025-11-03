@@ -18,6 +18,8 @@ const employeeController = new EmployeeController();
 const employeeService = new EmployeeService(new EmployeeRepository());
 
 router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
+// IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
+router.get('/schedule', (req, res) => employeeController.getSchedules(req, res, employeeService));
 router.get('/:id', validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));
 router.post('/', validate(createEmployeeSchema), employeeController.create(employeeService, EmployeeResponseMapper, 'Employee created successfully'));
 router.put('/:id', validate(updateEmployeeSchema), employeeController.update(employeeService, EmployeeResponseMapper, 'Employee updated successfully'));

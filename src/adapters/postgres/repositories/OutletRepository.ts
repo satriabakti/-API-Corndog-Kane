@@ -17,12 +17,34 @@ export default class OutletRepository
     
     return this.mapper.mapToEntity(outlet) as TOutletWithSettings;
   }
+
+  /**
+   * Get the latest active employee name for an outlet
+   * Returns null if no active employee is assigned
+   */
+  async getLatestEmployeeName(outletId: number): Promise<string | null> {
+    const latestAssignment = await this.prisma.outletEmployee.findFirst({
+      where: {
+        outlet_id: outletId,
+        is_active: true,
+      },
+      orderBy: {
+        assigned_at: 'desc',
+      },
+      include: {
+        employee: true,
+      },
+    });
+
+    return latestAssignment?.employee?.name || null;
+  }
+
   override async create(item: TOutletWithSettings & { userId: number }): Promise<TOutletWithSettings> {
     const outlet = await this.prisma.outlet.create({
       data: {
         name: item.name as string,
         is_active: item.isActive as boolean,
-        pic_name: item.picName as string,
+        code: item.code as string,
         pic_phone: item.picPhone as string,
         location: item.location as string,
         description: item.description as string | null,

@@ -11,10 +11,10 @@ export const createOutletSchema = z.object({
 			.max(100, {
 				message: "Location must be at most 100 characters long",
 			}),
-		pic_name: z
+		code: z
 			.string()
 			.max(50, {
-				message: "PIC Name must be at most 50 characters long",
+				message: "Code must be at most 50 characters long",
 			}),
 		pic_phone: z
 			.string()
@@ -99,8 +99,8 @@ export const updateOutletSchema = z.object({
     location: z.string()
       .max(100, { message: 'Location must be at most 100 characters long' })
       .optional(),
-    pic_name: z.string()
-      .max(50, { message: 'PIC Name must be at most 50 characters long' })
+    code: z.string()
+      .max(50, { message: 'Code must be at most 50 characters long' })
       .optional(),
     pic_phone: z.string()
       .regex(/^08\d{8,12}$/, { message: 'PIC Phone must start with 08 and be 10 to 14 digits long' })

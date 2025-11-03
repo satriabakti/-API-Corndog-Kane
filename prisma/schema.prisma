@@ -65,7 +65,7 @@ model Outlet {
   id             Int             @id @default(autoincrement())
   name           String
   location       String
-  pic_name       String
+  code           String          @default(uuid()) @unique
   pic_phone      String
   description    String?
   check_in_time  String
@@ -75,11 +75,11 @@ model Outlet {
   user_id        Int             @unique
   user           User            @relation(fields: [user_id], references: [id])
   outlet_employee OutletEmployee[]
-  product_outlets ProductOutlet[]
   orders         Order[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-
+  product_requests       OutletProductRequest[]
+  material_requests      OutletMaterialRequest[]
   @@map("outlets")
 }
 
@@ -96,8 +96,44 @@ model OutletEmployee {
 
   @@map("outlet_employees")
 }
-// Product and inventory models
+model OutletProductRequest{
+  id        Int      @id @default(autoincrement())
+  outlet_id Int
+  product_id Int
+  quantity   Int
+  approval_quantity Int?
+  outlet    Outlet   @relation(fields: [outlet_id], references: [id])
+  product   Product  @relation(fields: [product_id], references: [id])
+  status    String   @default("PENDING")
 
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("outlet_requests")
+}
+enum OUTLETREQUESTSTATUS {
+  PENDING
+  APPROVED
+  REJECTED
+  FULFILLED
+}
+model OutletMaterialRequest{
+  id        Int      @id @default(autoincrement())
+  outlet_id Int
+  material_id Int
+  quantity   Int
+  approval_quantity Int?
+  outlet    Outlet   @relation(fields: [outlet_id], references: [id])
+  material   material  @relation(fields: [material_id], references: [id])
+  status    OUTLETREQUESTSTATUS @default(PENDING)
+
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("outlet_material_requests")
+}
 model Product {
   id              Int             @id @default(autoincrement())
   name            String
@@ -109,9 +145,9 @@ model Product {
   is_active       Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  product_outlets ProductOutlet[]
   order_items     OrderItem[]
   stocks          ProductStock[] 
+  requests       OutletProductRequest[]
   @@map("products")
 }
 enum PRODUCTSOURCE  {
@@ -150,20 +186,7 @@ model ProductCategory {
   @@map("product_categories")
 }
 
-model ProductOutlet {
-  id         Int      @id @default(autoincrement())
-  product_id Int
-  outlet_id  Int
-  qty        Int      @default(0)
-  product    Product  @relation(fields: [product_id], references: [id])
-  outlet     Outlet   @relation(fields: [outlet_id], references: [id])
-  is_active  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
-  @@map("product_outlets")
-}
-// Order and sales models
 
 model Order {
   id             Int         @id @default(autoincrement())
@@ -261,7 +284,7 @@ model material {
   updatedAt    DateTime      @updatedAt
   material_in  MaterialIn[]
   material_out MaterialOut[]
-
+  requests     OutletMaterialRequest[]
   @@map("materials")
 }
 

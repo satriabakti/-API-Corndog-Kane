@@ -5,4 +5,4 @@ export * from './RoleController';
 export * from "./SuplierController";
 export * from './MaterialController';
 export * from './InventoryController';
-
+export * from './OutletRequestController';

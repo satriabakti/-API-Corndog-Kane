@@ -11,12 +11,13 @@ export class OutletResponseMapper {
    * Map User entity to list response format (simplified)
    * Used in findAll endpoints
    */
-  static toListResponse(outlet: TOutlet): TOutletGetResponse {
+  static toListResponse(outlet: TOutlet, picName: string | null = null): TOutletGetResponse {
     return {
       id: outlet.id,
       name: outlet.name,
       location: outlet.location,
-      pic_name: outlet.picName,
+      code: outlet.code,
+      pic_name: picName,
       pic_phone: outlet.picPhone,
       description: outlet.description,
       is_active: outlet.isActive,
@@ -29,7 +30,7 @@ export class OutletResponseMapper {
    * Map User entity to detailed response format
    * Used in findById endpoints
    */
-  static toDetailResponse(outlet:TOutletWithSettings): TOutletGetResponseWithSettings {
+  static toDetailResponse(outlet:TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
     return {
       id: outlet.id,
       checkin_time: outlet.checkinTime,
@@ -37,7 +38,8 @@ export class OutletResponseMapper {
       salary: outlet.salary,
       name: outlet.name,
       location: outlet.location,
-      pic_name: outlet.picName,
+      code: outlet.code,
+      pic_name: picName,
       pic_phone: outlet.picPhone,
       description: outlet.description,
       is_active: outlet.isActive,

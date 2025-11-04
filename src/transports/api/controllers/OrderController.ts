@@ -187,10 +187,12 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       );
     } catch (error) {
       console.error('Error creating order:', error);
+      const errMessage =
+        error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to create order';
       return this.handleError(
         res,
         error,
-        'Failed to create order',
+        errMessage,
         400,
         null,
         {} as TMetadataResponse

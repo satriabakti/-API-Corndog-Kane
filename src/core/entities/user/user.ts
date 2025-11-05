@@ -7,6 +7,7 @@ export type TUser = {
   role_id?: number;
   password: string;
   role:TRole;
+  outlets?: { id: number } | null;
   lastestLogin?: Date | null;
   logins: {
     ipAddress: string,

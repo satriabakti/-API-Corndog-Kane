@@ -13,7 +13,7 @@ export default class UserRepository
 	async findByUsername(username: string): Promise<TUser | null> {
 		const user = await this.prisma.user.findUnique({
 			where: { username },
-			include: { role: true },
+			include: { role: true, outlets: true },
 		});
 
 		if (!user) return null;

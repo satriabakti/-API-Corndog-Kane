@@ -8,6 +8,7 @@ export type TLoginResponse = {
   name: string;
   username: string;
   role: string;
+  outlet_id: number | null;
 }
 export type TLoginMetadataResponse = {
   token: string;

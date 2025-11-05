@@ -42,6 +42,7 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
           name: loginResponse.name,
           username: loginResponse.username,
           role: loginResponse.role,
+          outlet_id: loginResponse.outlet_id,
         },
         metadata: {
           token: this.createToken(loginResponse),

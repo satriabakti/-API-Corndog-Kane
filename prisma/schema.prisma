@@ -80,6 +80,7 @@ model Outlet {
   updatedAt      DateTime        @updatedAt
   product_requests       OutletProductRequest[]
   material_requests      OutletMaterialRequest[]
+  attendances    Attendance[]
   @@map("outlets")
 }
 
@@ -243,8 +244,31 @@ model Employee {
   payroll         Payroll[]
   outlet_employee OutletEmployee[]
   orders          Order[]
+  attendances     Attendance[]
 
   @@map("employees")
+}
+model Attendance {
+  id                   Int       @id @default(autoincrement())
+  employee_id          Int
+  outlet_id            Int
+  checkin_image_proof  String
+  checkout_image_proof String?
+  checkin_time         DateTime  @default(now())
+  checkout_time        DateTime?
+  is_active            Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  // Relations
+  employee             Employee  @relation(fields: [employee_id], references: [id])
+  outlet               Outlet    @relation(fields: [outlet_id], references: [id])
+  
+  // Indexes for common queries
+  @@index([employee_id, checkin_time])
+  @@index([outlet_id, checkin_time])
+  @@index([checkin_time])
+  @@map("attendances")
 }
 
 model Payroll {

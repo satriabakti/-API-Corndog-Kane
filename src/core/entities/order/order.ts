@@ -127,6 +127,8 @@ export type TMyOrderResponse = {
   id: number;
   invoice_number: string;
   date: string;
+  payment_method: string;
+  total_price: number;
   employee: {
     id: number;
     name: string;

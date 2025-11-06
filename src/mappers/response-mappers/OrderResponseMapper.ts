@@ -215,6 +215,7 @@ export class OrderResponseMapper {
     id: number;
     invoice_number: string;
     createdAt: Date;
+    payment_method: string;
     employee: {
       id: number;
       name: string;
@@ -242,10 +243,48 @@ export class OrderResponseMapper {
       }>;
     }>;
   }): TMyOrderResponse {
+    const mappedItems = order.items.map(item => {
+      // Map sub items (children) jika ada
+      const subItems = item.sub_items?.map(subItem => {
+        const subItemPrice = subItem.price;
+        const subItemTotalPrice = subItemPrice;
+        
+        return {
+          id: subItem.id,
+          product_id: subItem.product_id,
+          quantity: subItem.quantity,
+          price: subItemPrice,
+          total_price: subItemTotalPrice,
+          product_name: subItem.product?.name,
+        };
+      }) || [];
+
+      // Calculate parent item prices
+      const itemPrice = item.price;
+      const subTotalPrice = subItems.reduce((sum, subItem) => sum + subItem.total_price, 0);
+      const totalPrice = itemPrice + subTotalPrice;
+
+      return {
+        id: item.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: itemPrice,
+        sub_total_price: subTotalPrice,
+        total_price: totalPrice,
+        product_name: item.product?.name,
+        sub_items: subItems.length > 0 ? subItems : undefined,
+      };
+    });
+
+    // Calculate total price (sum of all items total_price)
+    const orderTotalPrice = mappedItems.reduce((sum, item) => sum + item.total_price, 0);
+
     return {
       id: order.id,
       invoice_number: order.invoice_number,
       date: order.createdAt.toISOString().split('T')[0],
+      payment_method: order.payment_method,
+      total_price: orderTotalPrice,
       employee: {
         id: order.employee.id,
         name: order.employee.name,
@@ -254,38 +293,7 @@ export class OrderResponseMapper {
         id: order.outlet.id,
         name: order.outlet.name,
       },
-      items: order.items.map(item => {
-        // Map sub items (children) jika ada
-        const subItems = item.sub_items?.map(subItem => {
-          const subItemPrice = subItem.price;
-          const subItemTotalPrice = subItemPrice;
-          
-          return {
-            id: subItem.id,
-            product_id: subItem.product_id,
-            quantity: subItem.quantity,
-            price: subItemPrice,
-            total_price: subItemTotalPrice,
-            product_name: subItem.product?.name,
-          };
-        }) || [];
-
-        // Calculate parent item prices
-        const itemPrice = item.price;
-        const subTotalPrice = subItems.reduce((sum, subItem) => sum + subItem.total_price, 0);
-        const totalPrice = itemPrice + subTotalPrice;
-
-        return {
-          id: item.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: itemPrice,
-          sub_total_price: subTotalPrice,
-          total_price: totalPrice,
-          product_name: item.product?.name,
-          sub_items: subItems.length > 0 ? subItems : undefined,
-        };
-      }),
+      items: mappedItems,
     };
   }
 }

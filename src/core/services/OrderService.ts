@@ -47,16 +47,16 @@ export default class OrderService extends Service<TOrder> {
 			}
 
 			// Check available stock for this outlet
-			const availableStock = await this.repository.getAvailableStockForOutlet(
-				item.productId,
-				outletId
-			);
+			// const availableStock = await this.repository.getAvailableStockForOutlet(
+			// 	item.productId,
+			// 	outletId
+			// );
 
-			if (item.qty > availableStock) {
-				throw new Error(
-					`Insufficient stock for product ${item.productId}. Available: ${availableStock}, Requested: ${item.qty}`
-				);
-			}
+			// if (item.qty > availableStock) {
+			// 	throw new Error(
+			// 		`Insufficient stock for product ${item.productId}. Available: ${availableStock}, Requested: ${item.qty}`
+			// 	);
+			// }
 
 			// Add to order items
 			orderItems.push({

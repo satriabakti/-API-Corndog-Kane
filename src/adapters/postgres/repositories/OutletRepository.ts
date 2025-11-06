@@ -55,6 +55,7 @@ export default class OutletRepository
         check_in_time: item.checkinTime,
         check_out_time: item.checkoutTime,
         salary: item.salary as number,
+        income_target: item.incomeTarget as number,
         user_id: item.userId as number,
       },
     });

@@ -132,6 +132,7 @@ export class OutletController extends Controller<
 				code: outletData.code,
 				picPhone: outletData.pic_phone,
 				salary: +outletData.setting.salary,
+				incomeTarget: +outletData.setting.income_target,
 				user: outletData.user,
 				userId: outletData.user_id || 0,
 			})) as TOutletWithSettings;

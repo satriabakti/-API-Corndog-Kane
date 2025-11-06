@@ -33,9 +33,13 @@ export class OutletResponseMapper {
   static toDetailResponse(outlet:TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
     return {
       id: outlet.id,
-      checkin_time: outlet.checkinTime,
-      checkout_time: outlet.checkoutTime,
-      salary: outlet.salary,
+      setting: {
+        checkin_time: outlet.checkinTime,
+        checkout_time: outlet.checkoutTime,
+        salary: +outlet.salary,
+        income_target: +outlet.incomeTarget,
+        
+      },
       name: outlet.name,
       location: outlet.location,
       code: outlet.code,

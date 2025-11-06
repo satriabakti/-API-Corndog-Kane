@@ -17,6 +17,7 @@ export const OutletMapperEntity: EntityMapConfig = {
     { dbField: 'check_in_time', entityField: 'checkinTime', transform: (v) => MapperUtil.mapDate(v as Date) },
     { dbField: 'check_out_time', entityField: 'checkoutTime', transform: (v) => MapperUtil.mapDate(v as Date) },
     { dbField: 'salary', entityField: 'salary', transform: (v) => MapperUtil.mapNullableNumber(v as number) },
+    { dbField: 'income_target', entityField: 'incomeTarget', transform: (v) => MapperUtil.mapNullableNumber(v as number) },
     { dbField: 'user_id', entityField: 'userId', transform: (v) => MapperUtil.mapId(v as number) },
     { dbField: 'is_active', entityField: 'isActive' },
     { dbField: 'createdAt', entityField: 'createdAt' },

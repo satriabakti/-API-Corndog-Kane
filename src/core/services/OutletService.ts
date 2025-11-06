@@ -24,7 +24,8 @@ export default class OutletService extends Service<TOutlet> {
 			userId,
 			user,
 			description,
-			checkinTime,
+      checkinTime,
+      incomeTarget,
 			checkoutTime,
 		} = item as TOutletCreate;
     let userIdToUse: number = userId ? userId : 0;
@@ -48,7 +49,8 @@ export default class OutletService extends Service<TOutlet> {
 			location,
 			description,
 			checkinTime: checkinTime,
-			checkoutTime: checkoutTime,
+      checkoutTime: checkoutTime,
+      incomeTarget,
 			salary,
 			userId: userIdToUse || 1,
     } as TOutletWithSettings & { userId: number });

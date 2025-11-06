@@ -15,6 +15,7 @@ export type TOutletCreate = Omit<TOutlet, "id" | "createdAt" | "updatedAt"> & {
 	checkinTime: string;
 	checkoutTime: string;
 	salary: number;
+	incomeTarget: number;
 	userId?: number;
 	user?: {
 		name: string;
@@ -30,7 +31,8 @@ export type TOutletCreate = Omit<TOutlet, "id" | "createdAt" | "updatedAt"> & {
 export type TOutletWithSettings = TOutlet & {
   checkinTime: string ;
   checkoutTime: string ;
-  salary: number ;
+  salary: number;
+  incomeTarget: number;
 }
 
 export type TOutletCreateRequest = Omit<
@@ -43,7 +45,8 @@ export type TOutletCreateRequest = Omit<
   setting: {
     checkin_time: string ;
     checkout_time: string ;
-    salary: number ;
+    salary: number;
+    income_target: number;
   };
   user?: TUserCreateRequest
   user_id?: number;
@@ -65,9 +68,14 @@ export type TOutletGetResponse = Omit<TOutlet, 'isActive' | 'createdAt' | 'updat
   updated_at: Date;
 }
 
-export type TOutletGetResponseWithSettings = Omit<TOutletWithSettings, 'isActive' | 'createdAt' | 'updatedAt' | 'code' | 'picPhone' | 'checkinTime' |'checkoutTime'> & {
-  checkin_time: string | null;
-  checkout_time: string | null;
+export type TOutletGetResponseWithSettings = Omit<TOutletWithSettings, 'incomeTarget' |'salary'|  'isActive' | 'createdAt' | 'updatedAt' | 'code' | 'picPhone' | 'checkinTime' | 'checkoutTime'> & {
+  setting: {
+    
+    checkin_time: string | null;
+    checkout_time: string | null;
+    salary: number | null;
+    income_target: number | null;
+  }
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -78,6 +86,7 @@ export type TOutletGetResponseWithSettings = Omit<TOutletWithSettings, 'isActive
 
 export type TOutletSettingsUpdateRequest = {
   checkin_time?: string | null;
+  income_target?: number | null;
   checkout_time?: string | null;
   salary?: number | null;
 }

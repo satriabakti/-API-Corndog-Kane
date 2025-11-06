@@ -111,12 +111,17 @@ export default class Controller<T, M> {
 								},
 						  ]
 						: undefined;
-				const filterObj = Object.keys(filters).length > 0 ? filters : undefined;
+				
+				// Convert filter values to appropriate types (boolean, number, string)
+				const convertedFilters = Object.keys(filters).length > 0 
+					? this.convertFilterTypes(filters as Record<string, unknown>)
+					: undefined;
+				
 				const result = await serviceClass.findAll(
 					pageNum,
 					limitNum,
 					search,
-					filterObj as FilterObject,
+					convertedFilters as FilterObject,
 					undefined,
 					outletId
 				);
@@ -208,6 +213,43 @@ export default class Controller<T, M> {
 				);
 			}
 		};
+	}
+
+	/**
+	 * Convert query string filter values to their appropriate types
+	 * @param filters - Object with filter values from query parameters
+	 * @returns Object with properly typed filter values
+	 */
+	private convertFilterTypes(filters: Record<string, unknown>): Record<string, unknown> {
+		const result: Record<string, unknown> = {};
+		
+		for (const key in filters) {
+			if (Object.prototype.hasOwnProperty.call(filters, key)) {
+				const value = filters[key];
+				
+				if (typeof value === 'string') {
+					// Convert string "true" or "false" to boolean
+					if (value.toLowerCase() === 'true') {
+						result[key] = true;
+					} else if (value.toLowerCase() === 'false') {
+						result[key] = false;
+					}
+					// Convert numeric strings to numbers
+					else if (!isNaN(Number(value)) && value.trim() !== '') {
+						result[key] = Number(value);
+					}
+					// Keep as string
+					else {
+						result[key] = value;
+					}
+				} else {
+					// Keep non-string values as-is
+					result[key] = value;
+				}
+			}
+		}
+		
+		return result;
 	}
 
 	private convertToCamelCase<TObj extends Record<string, unknown>>(obj: TObj): Record<string, unknown> {

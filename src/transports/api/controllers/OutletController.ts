@@ -46,8 +46,13 @@ export class OutletController extends Controller<
 		try {
 			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
 			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-
-			const result = await this.outletService.findAll(page, limit);
+			const {search_key,search_value}	= req.query;
+			const result = await this.outletService.findAll(page, limit,[
+				{
+					field: search_key as string,
+					value: search_value as string,
+				},
+			]);
 
 			// Fetch pic_name for each outlet
 			const dataWithPicName = await Promise.all(

@@ -12,6 +12,10 @@ export default class OutletRepository
   async findById(id: number): Promise<TOutletWithSettings | null> {
     const outlet = await this.getModel().findUnique({
       where: { id },
+      include:{
+        settings: true,
+        user: true,
+      }
     })
     if (!outlet) return null;
     

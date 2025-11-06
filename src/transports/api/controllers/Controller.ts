@@ -111,7 +111,7 @@ export default class Controller<T, M> {
 						  ]
 						: undefined;
 				const filterObj = Object.keys(filters).length > 0 ? filters : undefined;
-
+							console.log('FindAll called with:', { pageNum, limitNum, search, filterObj });
 				const result = await serviceClass.findAll(
 					pageNum,
 					limitNum,

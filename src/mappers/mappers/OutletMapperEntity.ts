@@ -23,6 +23,7 @@ export const OutletMapperEntity: EntityMapConfig = {
     { dbField: 'updatedAt', entityField: 'updatedAt' },
   ],
   relations: [
+   
     {
       dbField: 'user',
       entityField: 'user',

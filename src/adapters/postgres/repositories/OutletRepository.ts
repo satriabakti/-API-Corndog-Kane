@@ -129,7 +129,7 @@ export default class OutletRepository
   async getOutletProductStocks(
     outletId: number,
     page: number = 1,
-    limit: number = 10,
+    limit?: number,
     startDate?: Date,
     endDate?: Date
   ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
@@ -217,6 +217,7 @@ export default class OutletRepository
         });
         const soldStock = soldStockData._sum.quantity || 0;
 
+        
         // Calculate remaining_stock
         const remainingStock = firstStock + stockIn - soldStock;
 
@@ -234,6 +235,15 @@ export default class OutletRepository
 
     // Apply pagination
     const total = allRecords.length;
+    
+    // If no limit provided, return all records
+    if (!limit) {
+      return {
+        stocks: allRecords,
+        total,
+      };
+    }
+    
     const skip = (page - 1) * limit;
     const paginatedStocks = allRecords.slice(skip, skip + limit);
 
@@ -249,7 +259,7 @@ export default class OutletRepository
   async getOutletMaterialStocks(
     outletId: number,
     page: number = 1,
-    limit: number = 10,
+    limit?: number,
     startDate?: Date,
     endDate?: Date
   ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
@@ -350,7 +360,17 @@ export default class OutletRepository
     }
 
     // Apply pagination
+    // Apply pagination
     const total = allRecords.length;
+    
+    // If no limit provided, return all records
+    if (!limit) {
+      return {
+        stocks: allRecords,
+        total,
+      };
+    }
+    
     const skip = (page - 1) * limit;
     const paginatedStocks = allRecords.slice(skip, skip + limit);
 

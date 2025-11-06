@@ -90,38 +90,46 @@ export default class OrderRepository
 	 */
 	async getAvailableStockForOutlet(productId: number, outletId: number): Promise<number> {
 		const today = new Date();
-		const startOfDay = new Date(today);
-		startOfDay.setHours(0, 0, 0, 0);
-		
 		const endOfDay = new Date(today);
 		endOfDay.setHours(23, 59, 59, 999);
 
-		// Get total stock from ProductStock
-		const productStocks = await this.prisma.productStock.findMany({
-			where: { product_id: productId },
-		});
-		const totalStock = productStocks.reduce((sum, stock) => sum + stock.quantity, 0);
-
-		// Get approved outlet requests for today for this outlet
-		const approvedRequests = await this.prisma.outletProductRequest.findMany({
+		// Calculate total stock IN: all approved requests up to today
+		const totalStockInData = await this.prisma.outletProductRequest.aggregate({
 			where: {
-				product_id: productId,
 				outlet_id: outletId,
+				product_id: productId,
 				status: 'APPROVED',
 				createdAt: {
-					gte: startOfDay,
 					lte: endOfDay,
 				},
-				is_active: true,
+			},
+			_sum: {
+				approval_quantity: true,
 			},
 		});
+		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
 
-		const approvedQuantity = approvedRequests.reduce(
-			(sum, req) => sum + (req.approval_quantity || 0),
-			0
-		);
+		// Calculate total SOLD: all order items up to today
+		const totalSoldData = await this.prisma.orderItem.aggregate({
+			where: {
+				product_id: productId,
+				order: {
+					outlet_id: outletId,
+					createdAt: {
+						lte: endOfDay,
+					},
+				},
+			},
+			_sum: {
+				quantity: true,
+			},
+		});
+		const totalSold = totalSoldData._sum?.quantity || 0;
 
-		return totalStock - approvedQuantity;
+		// Calculate remaining stock: total received - total sold
+		const remainingStock = totalStockIn - totalSold;
+
+		return remainingStock;
 	}
 
 	/**

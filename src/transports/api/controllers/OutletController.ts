@@ -45,7 +45,7 @@ export class OutletController extends Controller<
 	getAllOutlets = async (req: Request, res: Response): Promise<Response> => {
 		try {
 			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 			const {search_key,search_value}	= req.query;
 			const result = await this.outletService.findAll(page, limit,[
 				{
@@ -278,7 +278,7 @@ export class OutletController extends Controller<
 		try {
 			const { id } = req.params;
 			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 			
 			// Optional date filters
 			let startDate: Date | undefined;
@@ -338,7 +338,7 @@ export class OutletController extends Controller<
 		try {
 			const { id } = req.params;
 			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 			
 			// Optional date filters
 			let startDate: Date | undefined;

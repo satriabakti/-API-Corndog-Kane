@@ -174,5 +174,48 @@ export default class MaterialRepository
 		// Map DB records to entities using EntityMapper
 		return this.stockOutMapper.mapToEntities(dbRecords);
 	}
+
+	async getMaterialStockByOutlet(materialId: number, outletId: number, date: Date): Promise<number> {
+		// End of day for the given date
+		const endOfDay = new Date(date);
+		endOfDay.setHours(23, 59, 59, 999);
+
+		// Single query: Get ALL stock_in up to and including this date
+		const totalStockInData = await this.prisma.outletMaterialRequest.aggregate({
+			where: {
+				outlet_id: outletId,
+				material_id: +materialId,
+				status: 'APPROVED',
+				createdAt: {
+					lte: endOfDay,
+				},
+			},
+			_sum: {
+				approval_quantity: true,
+			},
+		});
+		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
+
+		// Single query: Get ALL used_stock up to and including this date
+		// Note: MaterialOut doesn't have outlet_id, so we calculate globally
+		const totalUsedData = await this.prisma.materialOut.aggregate({
+			where: {
+				material_id: +materialId,
+				used_at: {
+					lte: endOfDay,
+				},
+			},
+			_sum: {
+				quantity: true,
+			},
+		});
+		const totalUsed = totalUsedData._sum?.quantity || 0;
+
+		// Calculate remaining_stock: total received - total used
+		const remainingStock = totalStockIn - totalUsed;
+
+		return remainingStock;
+	}
 }
+
 

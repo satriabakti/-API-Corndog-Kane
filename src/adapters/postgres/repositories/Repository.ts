@@ -143,22 +143,22 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 	/**
 	 * Get all records with pagination and search
 	 * @param page - Page number (1-based)
-	 * @param limit - Records per page
+	 * @param limit - Records per page (if undefined, get all data)
 	 * @param search - Search configuration array for LIKE queries
 	 * @param filters - Exact match filters
 	 * @param orderBy - Sort configuration
 	 */
 	async getAll(
 		page: number = 1,
-		limit: number = 10,
+		limit?: number,
 		search?: SearchConfig[],
 		filters?: Record<string, unknown>,
 		orderBy?: Record<string, 'asc' | 'desc'>
 	): Promise<PaginationResult<T>> {
 		const model = this.getModel();
 		
-		// Calculate skip for pagination
-		const skip = (page - 1) * limit;
+		// Calculate skip for pagination only if limit is provided
+		const skip = limit ? (page - 1) * limit : undefined;
 		
 		// Build where clause
 		const where: Record<string, unknown> = {};
@@ -188,22 +188,22 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		// Get total count for pagination
 		const total = await model.count({ where });
 		
-		// Get paginated records
+		// Get records - if limit is undefined, get all data without skip/take
 		const records = await model.findMany({
 			where,
-			skip,
-			take: limit,
+			...(skip !== undefined && { skip }),
+			...(limit !== undefined && { take: limit }),
 			orderBy: orderBy || { id: 'asc' }, // Default sort by id ascending
 			include: this.mapper.getIncludes(), // Include all configured relations
 		});
 		const data = this.mapper.mapToEntities(records);
-		const totalPages = Math.ceil(total / limit);
+		const totalPages = limit ? Math.ceil(total / limit) : 1;
 		
 		return {
 			data,
 			total,
 			page,
-			limit,
+			limit: limit || total, // If no limit, return total count as limit
 			totalPages
 		};
 	}

@@ -100,7 +100,7 @@ export default class Controller<T, M> {
 			try {
 				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
 				const pageNum = page ? parseInt(page as string) : 1;
-				const limitNum = limit ? parseInt(limit as string) : 10;
+				const limitNum = limit ? parseInt(limit as string) : undefined;
 				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				const search =
 					search_key && search_value

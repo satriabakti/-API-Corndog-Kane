@@ -67,6 +67,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 
 		return {
 			id: material.id,
+			material_id: material.id,
 			date: formatDate(new Date()), // Today's date
 			name: material.name,
 			firstStockCount: material.materialIn[0]?.quantity || 0,
@@ -125,6 +126,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 
 		return {
 			id: material.id,
+			material_id: material.id,
 			date: formatDate(new Date()), // Today's date
 			name: material.name,
 			firstStockCount: material.materialIn[0]?.quantity || 0,
@@ -252,6 +254,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 			
 			data.push({
 				id: daily.materialId,
+				material_id: daily.materialId,
 				date: daily.date,
 				name: daily.materialName,
 				firstStockCount: previousStock, // Stock awal = stock akhir hari sebelumnya

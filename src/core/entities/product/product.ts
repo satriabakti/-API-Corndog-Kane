@@ -77,6 +77,7 @@ export type TProductStockIn = {
  */
 export type TProductStockInventory = {
   id: number;
+  product_id: number;
   date: string;
   name: string;
   firstStockCount: number;
@@ -112,6 +113,7 @@ export type TProductStockInResponse = {
  */
 export type TProductInventoryGetResponse = {
   id: number;
+  product_id: number;
   date: string;
   name: string;
   first_stock_count: number;

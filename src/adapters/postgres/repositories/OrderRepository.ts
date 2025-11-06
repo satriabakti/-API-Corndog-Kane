@@ -82,7 +82,7 @@ export default class OrderRepository
 			select: { price: true },
 		});
 
-		return product?.price || null;
+		return product?.price || 0;
 	}
 
 	/**

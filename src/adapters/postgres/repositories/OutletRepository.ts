@@ -13,7 +13,6 @@ export default class OutletRepository
     const outlet = await this.getModel().findUnique({
       where: { id },
       include:{
-        settings: true,
         user: true,
       }
     })

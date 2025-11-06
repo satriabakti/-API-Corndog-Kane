@@ -4,6 +4,7 @@ export class MaterialStockOutResponseMapper {
   static toResponse(data: MaterialInventoryRawData): TMaterialInventoryGetResponse {
     return {
       id: data.id,
+      material_id: data.material_id,
       date: data.date,
       name: data.name,
       first_stock_count: data.firstStockCount,

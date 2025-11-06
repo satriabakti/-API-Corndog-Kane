@@ -4,6 +4,7 @@ export class ProductStockResponseMapper {
   static toResponse(data: ProductInventoryRawData): TProductInventoryGetResponse {
     return {
       id: data.id,
+      product_id: data.product_id,
       date: data.date,
       name: data.name,
       first_stock_count: data.firstStockCount,

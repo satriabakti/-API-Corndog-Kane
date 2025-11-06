@@ -129,6 +129,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       
       data.push({
         id: daily.productId,
+        product_id: daily.productId,
         date: daily.date,
         name: daily.productName,
         firstStockCount: previousStock, // Stock awal = stock akhir hari sebelumnya

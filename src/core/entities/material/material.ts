@@ -93,6 +93,7 @@ export type TMaterialStockOutUpdateRequest = Partial<TMaterialStockOutCreateRequ
  */
 export type TMaterialStockInventory = {
   id: number;
+  material_id: number;
   date: string;
   name: string;
   firstStockCount: number;
@@ -110,6 +111,7 @@ export type TMaterialStockInventory = {
  */
 export type TMaterialInventoryGetResponse = {
   id: number;
+  material_id: number;
   date: string;
   name: string;
   first_stock_count: number;

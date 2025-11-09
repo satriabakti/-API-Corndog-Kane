@@ -22,6 +22,9 @@ export type TAttendanceWithRelations = {
   checkout_image_proof: string | null;
   checkin_time: Date;
   checkout_time: Date | null;
+  late_minutes: number;
+  late_notes: string | null;
+  late_present_proof: string | null;
   is_active: boolean;
   createdAt: Date;
   updatedAt: Date;

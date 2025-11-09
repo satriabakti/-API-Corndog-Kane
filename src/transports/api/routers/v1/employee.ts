@@ -13,7 +13,7 @@ import EmployeeService from '../../../../core/services/EmployeeService';
 import EmployeeRepository from '../../../../adapters/postgres/repositories/EmployeeRepository';
 import { EmployeeResponseMapper } from '../../../../mappers/response-mappers/EmployeeResponseMapper';
 import { authMiddleware } from '../../../../policies/authMiddleware';
-import { storage } from '../../../../policies/uploadImages';
+import { storage, storageMultiple } from '../../../../policies/uploadImages';
 
 const router = express.Router();
 
@@ -22,6 +22,7 @@ const employeeService = new EmployeeService(new EmployeeRepository());
 
 // Upload middleware for attendance images
 const uploadAttendanceImage = storage('absent');
+const uploadMultipleAttendanceImages = storageMultiple('absent');
 
 router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
 // IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
@@ -37,7 +38,10 @@ router.get('/schedule/:outletId',
 // Attendance endpoints
 router.post('/checkin', 
   authMiddleware, 
-  uploadAttendanceImage('image_proof'), 
+  uploadMultipleAttendanceImages([
+    { name: 'image_proof', maxCount: 1 },
+    { name: 'late_present_proof', maxCount: 1 }
+  ]), 
   (req, res) => employeeController.checkin(req, res, employeeService)
 );
 router.post('/checkout', 

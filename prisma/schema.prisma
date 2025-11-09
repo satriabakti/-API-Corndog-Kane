@@ -326,7 +326,18 @@ model OutletEmployee {
 // ============================================================================
 // OUTLETS MODULE - Employee Attendance Tracking
 // ============================================================================
-
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum AttendanceStatus {
+  PRESENT
+  SICK
+  NOT_PRESENT
+  EXCUSED
+  CUTI
+}
 model Attendance {
   id                   Int       @id @default(autoincrement())
   employee_id          Int
@@ -335,6 +346,11 @@ model Attendance {
   checkout_image_proof String?
   checkin_time         DateTime  @default(now())
   checkout_time        DateTime?
+  late_minutes        Int       @default(0)
+  late_notes          String?
+  late_present_proof  String?
+  late_approval_status ApprovalStatus @default(PENDING)
+  attendance_status   AttendanceStatus @default(PRESENT)
   is_active            Boolean   @default(true)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

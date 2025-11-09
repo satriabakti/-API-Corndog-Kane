@@ -16,7 +16,39 @@ export default class EmployeeRepository
     this.attendanceMapper = new EntityMapper<TAttendanceWithID>(AttendanceMapperEntity);
   }
 
-  async getSchedules() {
+  async getSchedules(view?: string) {
+    // For table view, return attendance data
+    if (view === 'table') {
+      const attendances = await this.prisma.attendance.findMany({
+        where: {
+          is_active: true,
+        },
+        select: {
+          id: true,
+          employee: {
+            select: {
+              name: true,
+            },
+          },
+          checkin_time: true,
+          checkin_image_proof: true,
+          checkout_time: true,
+          checkout_image_proof: true,
+          attendance_status: true,
+          late_minutes: true,
+          late_present_proof: true,
+          late_notes: true,
+          late_approval_status: true,
+        },
+        orderBy: {
+          checkin_time: 'desc',
+        },
+      });
+
+      return attendances;
+    }
+
+    // For timeline view (default), return outlet assignments
     const schedules = await this.prisma.outletEmployee.findMany({
       where: {
         is_active: true,
@@ -51,8 +83,15 @@ export default class EmployeeRepository
 
   /**
    * Check-in: Create a new attendance record
+   * Automatically calculates late_minutes by comparing checkin_time with outlet check_in_time
    */
-  async checkin(employeeId: number, outletId: number, imagePath: string): Promise<TAttendanceWithID> {
+  async checkin(
+    employeeId: number, 
+    outletId: number, 
+    imagePath: string,
+    lateNotes?: string,
+    latePresentProof?: string
+  ): Promise<TAttendanceWithID> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -74,6 +113,31 @@ export default class EmployeeRepository
       throw new Error('Already checked in today');
     }
 
+    // Get outlet check_in_time to calculate late_minutes
+    const outlet = await this.prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { check_in_time: true },
+    });
+
+    if (!outlet) {
+      throw new Error('Outlet not found');
+    }
+
+    // Calculate late_minutes
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Parse outlet check_in_time (format: "HH:MM:SS")
+    const [outletHour, outletMinute] = outlet.check_in_time.split(':').map(Number);
+    
+    // Convert to minutes for comparison
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    const outletTimeInMinutes = outletHour * 60 + outletMinute;
+    
+    // Calculate how many minutes late (0 if on time or early)
+    const lateMinutes = Math.max(0, currentTimeInMinutes - outletTimeInMinutes);
+
     // Create new attendance record
     const attendance = await this.prisma.attendance.create({
       data: {
@@ -81,6 +145,9 @@ export default class EmployeeRepository
         outlet_id: outletId,
         checkin_image_proof: imagePath,
         checkin_time: new Date(),
+        late_minutes: lateMinutes,
+        late_notes: lateNotes || null,
+        late_present_proof: latePresentProof || null,
       },
     });
 
@@ -214,6 +281,9 @@ export default class EmployeeRepository
       checkout_image_proof: string | null;
       checkin_time: Date;
       checkout_time: Date | null;
+      late_minutes: number;
+      late_notes: string | null;
+      late_present_proof: string | null;
       is_active: boolean;
       createdAt: Date;
       updatedAt: Date;

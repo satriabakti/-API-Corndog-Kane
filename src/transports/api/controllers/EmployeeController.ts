@@ -1,19 +1,20 @@
 import { Request, Response } from "express";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TEmployeeGetResponse } from "../../../core/entities/employee/employee";
-import { TAttendanceGetResponse, TAttendanceListResponse } from "../../../core/entities/employee/attendance";
-import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
+import { TAttendanceGetResponse, TAttendanceListResponse, TAttendanceTableResponse } from "../../../core/entities/employee/attendance";
+import { TOutletAssignmentGetResponse, TOutletAssignmentWithRelations } from "../../../core/entities/outlet/assignment";
 import Controller from "./Controller";
 import EmployeeService from "../../../core/services/EmployeeService";
 import { EmployeeResponseMapper } from "../../../mappers/response-mappers/EmployeeResponseMapper";
 import { AttendanceResponseMapper } from "../../../mappers/response-mappers/AttendanceResponseMapper";
 import { AttendanceListResponseMapper } from "../../../mappers/response-mappers/AttendanceListResponseMapper";
+import { AttendanceTableResponseMapper } from "../../../mappers/response-mappers/AttendanceTableResponseMapper";
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
 import { AuthRequest } from "../../../policies/authMiddleware";
 import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
 
 // Union type for all possible employee response types
-type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | TAttendanceGetResponse | TAttendanceListResponse[] | null;
+type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | TAttendanceGetResponse | TAttendanceListResponse[] | TAttendanceTableResponse[] | null;
 
 export class EmployeeController extends Controller<TEmployeeResponseTypes, TMetadataResponse> {
   constructor() {
@@ -59,11 +60,51 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
   getSchedules = async (req: Request, res: Response, employeeService: EmployeeService) => {
     try {
-      // This endpoint returns all employee-outlet assignments (schedules)
-      const schedules = await employeeService.getSchedules();
+      const view = req.query.view as string | undefined;
+
+      // Get data based on view parameter
+      const data = await employeeService.getSchedules(view);
       
-      // Map to proper response type
-      const schedulesResponse: TOutletAssignmentGetResponse[] = schedules.map(schedule =>
+      // For table view, return attendance data
+      if (view === 'table') {
+        const tableResponse: TAttendanceTableResponse[] = AttendanceTableResponseMapper.toListResponse(
+          data as Array<{
+            id: number;
+            employee: { name: string };
+            checkin_time: Date;
+            checkin_image_proof: string;
+            checkout_time: Date | null;
+            checkout_image_proof: string | null;
+            attendance_status: string;
+            late_minutes: number;
+            late_present_proof: string | null;
+            late_notes: string | null;
+            late_approval_status: string;
+          }>
+        );
+        
+        return this.getSuccessResponse(
+          res,
+          {
+            data: tableResponse,
+            metadata: {} as TMetadataResponse,
+          },
+          'Employee attendance table retrieved successfully'
+        );
+      }
+
+      // For timeline view (default), return outlet assignments
+      const schedulesResponse: TOutletAssignmentGetResponse[] = (data as Array<{
+        id: number;
+        outlet_id: number;
+        employee_id: number;
+        assigned_at: Date;
+        is_active: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        outlet: { id: number; name: string; location: string; check_in_time: string; check_out_time: string };
+        employee: { id: number; name: string; phone: string; nik: string; address: string };
+      }>).map(schedule =>
         OutletAssignmentResponseMapper.toListResponse(schedule)
       );
       
@@ -108,8 +149,14 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      // Image path from uploaded file (validated by Zod schema)
-      const imagePath = req.file?.filename ;
+      // Extract uploaded files
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+      const imagePath = files?.image_proof?.[0]?.filename;
+      const latePresentProof = files?.late_present_proof?.[0]?.filename;
+      
+      // Extract late_notes from body
+      const lateNotes = req.body.late_notes;
+
       if (!imagePath) {
         return this.getFailureResponse(res,
           { data: null, metadata: {} as TMetadataResponse } ,
@@ -118,6 +165,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           400
         )
       }
+      
       // Get the scheduled employee for this outlet
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
       
@@ -131,7 +179,13 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      const attendance = await employeeService.checkin(employeeId, outletId, imagePath);
+      const attendance = await employeeService.checkin(
+        employeeId, 
+        outletId, 
+        imagePath, 
+        lateNotes, 
+        latePresentProof
+      );
       const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(attendance);
 
       return this.getSuccessResponse(

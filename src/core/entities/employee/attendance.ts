@@ -17,6 +17,9 @@ export type TAttendance = {
   checkoutImageProof?: string | null;
   checkinTime: Date;
   checkoutTime?: Date | null;
+  lateMinutes?: number;
+  lateNotes?: string | null;
+  latePresentProof?: string | null;
   isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -55,13 +58,16 @@ export type TAttendanceCheckoutRequest = {
 /**
  * Response type for attendance endpoints
  */
-export type TAttendanceGetResponse = Omit<TAttendanceWithID, 'isActive' | 'createdAt' | 'updatedAt' | 'employeeId' | 'outletId' | 'checkinImageProof' | 'checkoutImageProof' | 'checkinTime' | 'checkoutTime'> & {
+export type TAttendanceGetResponse = Omit<TAttendanceWithID, 'isActive' | 'createdAt' | 'updatedAt' | 'employeeId' | 'outletId' | 'checkinImageProof' | 'checkoutImageProof' | 'checkinTime' | 'checkoutTime' | 'lateMinutes' | 'lateNotes' | 'latePresentProof'> & {
   employee_id: number;
   outlet_id: number;
   checkin_image_proof: string;
   checkout_image_proof: string | null;
   checkin_time: Date;
   checkout_time: Date | null;
+  late_minutes: number;
+  late_notes: string | null;
+  late_present_proof: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -89,7 +95,29 @@ export type TAttendanceListResponse = {
   checkout_image_proof: string | null;
   checkin_time: Date;
   checkout_time: Date | null;
+  late_minutes: number;
+  late_notes: string | null;
+  late_present_proof: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
+};
+
+/**
+ * Response type for attendance table view
+ * Simplified format for table display with attendance status
+ */
+export type TAttendanceTableResponse = {
+  id: number;
+  employee_name: string;
+  date: Date;
+  checkin_time: Date | null;
+  checkin_proof: string | null;
+  checkout_time: Date | null;
+  checkout_proof: string | null;
+  attendance_status: string;
+  late_minutes: number;
+  late_present_proof: string | null;
+  late_notes: string | null;
+  late_approval_status: string;
 };

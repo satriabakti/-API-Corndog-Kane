@@ -11,8 +11,8 @@ export default class EmployeeService extends Service<TEmployee> {
     super(repository);
   }
 
-  async getSchedules() {
-    return await this.repository.getSchedules();
+  async getSchedules(view?: string) {
+    return await this.repository.getSchedules(view);
   }
 
   /**
@@ -25,9 +25,16 @@ export default class EmployeeService extends Service<TEmployee> {
   /**
    * Employee check-in
    * No time validation - can check in anytime
+   * Automatically calculates late_minutes based on outlet check_in_time
    */
-  async checkin(employeeId: number, outletId: number, imagePath: string): Promise<TAttendanceWithID> {
-    return await this.repository.checkin(employeeId, outletId, imagePath);
+  async checkin(
+    employeeId: number, 
+    outletId: number, 
+    imagePath: string,
+    lateNotes?: string,
+    latePresentProof?: string
+  ): Promise<TAttendanceWithID> {
+    return await this.repository.checkin(employeeId, outletId, imagePath, lateNotes, latePresentProof);
   }
 
   /**

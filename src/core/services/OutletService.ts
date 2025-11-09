@@ -4,6 +4,7 @@ import { TOutlet, TOutletCreate, TOutletUpdate, TOutletWithSettings, TOutletProd
 import { TOutletAssignmentWithRelations } from "../entities/outlet/assignment";
 import { TUser, TUserCreate } from "../entities/user/user";
 import { Service } from "./Service";
+import bcrypt from "bcrypt";
 
 export default class OutletService extends Service<TOutlet> {
 	declare repository: OutletRepository;
@@ -30,11 +31,13 @@ export default class OutletService extends Service<TOutlet> {
 		} = item as TOutletCreate;
     let userIdToUse: number = userId ? userId : 0;
     if (user && userId == 0) {
+      // Hash password before creating user
+      const hashedPassword = await bcrypt.hash(user.password, 10);
       
       const userData = {
         name: user.name,
         username: user.username,
-        password: user.password,
+        password: hashedPassword,
         role_id: user.role_id,
       } as TUserCreate;
 			const newUser = await this.userRepository.create(userData as TUser) as TUser;

@@ -111,7 +111,7 @@ export const updateOutletSchema = z.object({
     is_active: z.boolean()
       .optional(),
     setting: z.object({
-      chekin_time: z.string()
+      checkin_time: z.string()
         .regex(/^\d{2}:\d{2}:\d{2}$/, { message: 'Check-in time must be in HH:MM:SS format' })
         .optional(),
       checkout_time: z.string()

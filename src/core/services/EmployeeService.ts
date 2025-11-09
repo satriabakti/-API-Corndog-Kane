@@ -46,6 +46,7 @@ export default class EmployeeService extends Service<TEmployee> {
     // Compare times (convert to minutes for easier comparison)
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     const outletTimeInMinutes = outletHour * 60 + outletMinute;
+    console.log(`Current time in minutes: ${currentTimeInMinutes}, Outlet checkout time in minutes: ${outletTimeInMinutes}`);
     
     if (currentTimeInMinutes < outletTimeInMinutes) {
       throw new Error(`Cannot checkout before ${checkoutTime}. Current time is too early.`);

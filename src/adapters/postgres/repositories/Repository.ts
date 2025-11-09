@@ -162,6 +162,32 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		
 		// Build where clause
 		const where: Record<string, unknown> = {};
+
+		// Helper to recursively remove undefined keys from where object
+		function sanitizeWhere(obj: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+			if (!obj) return undefined;
+			const cleaned: Record<string, unknown> = {};
+			for (const k of Object.keys(obj)) {
+				const v = obj[k];
+				if (v === undefined) continue; // drop undefined values
+				// If value is an object, sanitize recursively
+				if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+					const nested = sanitizeWhere(v as Record<string, unknown>);
+					if (nested && Object.keys(nested).length > 0) {
+						cleaned[k] = nested;
+					}
+				} else if (Array.isArray(v)) {
+					// sanitize each element if it's an object, otherwise keep values that are not undefined
+					const arr = (v as unknown[]).filter(el => el !== undefined).map(el =>
+						(el && typeof el === 'object' && !(el instanceof Date)) ? sanitizeWhere(el as Record<string, unknown>) : el
+					).filter(el => el !== undefined && !(typeof el === 'object' && Object.keys(el as Record<string, unknown>).length === 0));
+					if (arr.length > 0) cleaned[k] = arr;
+				} else {
+					cleaned[k] = v;
+				}
+			}
+			return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+		}
 		
 		// Add exact match filters
 		if (filters) {
@@ -170,27 +196,34 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		
 		// Add search conditions (LIKE)
 		if (search && search.length > 0) {
-			const searchConditions = search.map(({ field, value }) => ({
-				[field]: {
-					contains: value,
-					mode: 'insensitive' // Case-insensitive search
-				}
-			}));
+			// Filter out search entries with undefined/null field or value
+			const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
 			
-			// Use OR condition for multiple search fields
-			if (searchConditions.length > 1) {
-				where.OR = searchConditions;
-			} else {
-				Object.assign(where, searchConditions[0]);
+			if (validSearch.length > 0) {
+				const searchConditions = validSearch.map(({ field, value }) => ({
+					[field]: {
+						contains: value,
+						mode: 'insensitive' // Case-insensitive search
+					}
+				}));
+				
+				// Use OR condition for multiple search fields
+				if (searchConditions.length > 1) {
+					where.OR = searchConditions;
+				} else {
+					Object.assign(where, searchConditions[0]);
+				}
 			}
 		}
 		
+		// Sanitize where before passing to Prisma to avoid invalid undefined keys
+		const sanitizedWhere = sanitizeWhere(where);
 		// Get total count for pagination
-		const total = await model.count({ where });
+		const total = await model.count({ where: sanitizedWhere });
 		
 		// Get records - if limit is undefined, get all data without skip/take
 		const records = await model.findMany({
-			where,
+			where: sanitizedWhere,
 			...(skip !== undefined && { skip }),
 			...(limit !== undefined && { take: limit }),
 			orderBy: orderBy || { id: 'asc' }, // Default sort by id ascending

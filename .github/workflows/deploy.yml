@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -90,6 +93,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: Configure Git
         run: |
@@ -102,5 +106,5 @@ jobs:
           git fetch origin
           git checkout dev || git checkout -b dev
           git merge origin/master -m "Auto-sync: Merge master into dev"
-          git push --force origin dev
+          git push origin dev
           echo "Successfully synced master to dev branch"

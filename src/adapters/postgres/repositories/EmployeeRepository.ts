@@ -16,12 +16,31 @@ export default class EmployeeRepository
     this.attendanceMapper = new EntityMapper<TAttendanceWithID>(AttendanceMapperEntity);
   }
 
-  async getSchedules(view?: string) {
+  async getSchedules(view?: string, startDate?: string, endDate?: string) {
+    // Build date filter for attendance queries
+    const dateFilter: { checkin_time?: { gte?: Date; lte?: Date } } = {};
+    if (startDate || endDate) {
+      dateFilter.checkin_time = {};
+      if (startDate) {
+        // Set to start of day
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        dateFilter.checkin_time.gte = start;
+      }
+      if (endDate) {
+        // Set to end of day
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.checkin_time.lte = end;
+      }
+    }
+
     // For table view, return attendance data
     if (view === 'table') {
       const attendances = await this.prisma.attendance.findMany({
         where: {
           is_active: true,
+          ...dateFilter,
         },
         select: {
           id: true,
@@ -49,6 +68,7 @@ export default class EmployeeRepository
     }
 
     // For timeline view (default), return outlet assignments
+    // Note: Date filtering only applies to attendance (table view)
     const schedules = await this.prisma.outletEmployee.findMany({
       where: {
         is_active: true,

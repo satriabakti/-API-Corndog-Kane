@@ -11,8 +11,8 @@ export default class EmployeeService extends Service<TEmployee> {
     super(repository);
   }
 
-  async getSchedules(view?: string) {
-    return await this.repository.getSchedules(view);
+  async getSchedules(view?: string, startDate?: string, endDate?: string) {
+    return await this.repository.getSchedules(view, startDate, endDate);
   }
 
   /**

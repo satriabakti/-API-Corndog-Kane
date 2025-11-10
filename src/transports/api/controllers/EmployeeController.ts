@@ -211,9 +211,11 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
   getSchedules = async (req: Request, res: Response, employeeService: EmployeeService) => {
     try {
       const view = req.query.view as string | undefined;
+      const startDate = req.query.start_date as string | undefined;
+      const endDate = req.query.end_date as string | undefined;
 
-      // Get data based on view parameter
-      const data = await employeeService.getSchedules(view);
+      // Get data based on view parameter and date filters
+      const data = await employeeService.getSchedules(view, startDate, endDate);
       
       // For table view, return attendance data
       if (view === 'table') {

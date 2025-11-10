@@ -135,3 +135,20 @@ export const getAttendancesByOutletSchema = z.object({
     limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
   }),
 });
+
+/**
+ * Validation schema for getting schedules with date range filters
+ */
+export const getSchedulesSchema = z.object({
+  query: z.object({
+    view: z.string().optional(),
+    start_date: z.string().optional().refine(
+      (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
+      { message: "start_date must be in format YYYY-MM-DD" }
+    ),
+    end_date: z.string().optional().refine(
+      (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
+      { message: "end_date must be in format YYYY-MM-DD" }
+    ),
+  }),
+});

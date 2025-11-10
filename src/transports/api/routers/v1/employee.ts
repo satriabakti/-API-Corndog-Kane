@@ -7,6 +7,7 @@ import {
   deleteEmployeeSchema,
   getEmployeesSchema,
   getAttendancesByOutletSchema,
+  getSchedulesSchema,
 } from '../../validations/employee.validation';
 import { EmployeeController } from '../../controllers/EmployeeController';
 import EmployeeService from '../../../../core/services/EmployeeService';
@@ -29,7 +30,7 @@ const uploadEmployeeImage = storage('employee');
 
 router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
 // IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
-router.get('/schedule', (req, res) => employeeController.getSchedules(req, res, employeeService));
+router.get('/schedule', validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
 
 // Get attendances by outlet (must be before /:id route)
 router.get('/schedule/:outletId', 

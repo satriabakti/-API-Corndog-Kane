@@ -145,4 +145,15 @@ export default class OrderService extends Service<TOrder> {
 		}
 		return order;
 	}
+
+	/**
+	 * Get order for WebSocket broadcast (with category)
+	 */
+	async getOrderForBroadcast(orderId: number) {
+		const order = await this.repository.getOrderForBroadcast(orderId);
+		if (!order) {
+			throw new Error('Order not found');
+		}
+		return order;
+	}
 }

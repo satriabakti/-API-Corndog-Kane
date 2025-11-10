@@ -136,6 +136,7 @@ export type TMyOrderResponse = {
   outlet: {
     id: number;
     name: string;
+    location: string;
   };
   items: {
     id: number;

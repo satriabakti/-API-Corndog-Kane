@@ -1,23 +1,51 @@
 import { Request, Response } from "express";
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TEmployeeGetResponse } from "../../../core/entities/employee/employee";
-import { TAttendanceGetResponse, TAttendanceListResponse } from "../../../core/entities/employee/attendance";
-import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
+import { TEmployeeGetResponse, TEmployee } from "../../../core/entities/employee/employee";
+import { TAttendanceGetResponse, TAttendanceListResponse, TAttendanceTableResponse } from "../../../core/entities/employee/attendance";
+import { TOutletAssignmentGetResponse, TOutletAssignmentWithRelations } from "../../../core/entities/outlet/assignment";
 import Controller from "./Controller";
 import EmployeeService from "../../../core/services/EmployeeService";
 import { EmployeeResponseMapper } from "../../../mappers/response-mappers/EmployeeResponseMapper";
 import { AttendanceResponseMapper } from "../../../mappers/response-mappers/AttendanceResponseMapper";
 import { AttendanceListResponseMapper } from "../../../mappers/response-mappers/AttendanceListResponseMapper";
+import { AttendanceTableResponseMapper } from "../../../mappers/response-mappers/AttendanceTableResponseMapper";
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
 import { AuthRequest } from "../../../policies/authMiddleware";
 import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
+import fs from "fs";
+import path from "path";
 
 // Union type for all possible employee response types
-type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | TAttendanceGetResponse | TAttendanceListResponse[] | null;
+type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | TAttendanceGetResponse | TAttendanceListResponse[] | TAttendanceTableResponse[] | null;
 
 export class EmployeeController extends Controller<TEmployeeResponseTypes, TMetadataResponse> {
   constructor() {
     super();
+  }
+
+  /**
+   * Convert snake_case to camelCase for employee data
+   */
+  private snakeToCamel<TObj extends Record<string, unknown>>(obj: TObj): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        result[camelKey] = this.snakeToCamel(value as Record<string, unknown>);
+      } else if (Array.isArray(value)) {
+        result[camelKey] = value.map(item =>
+          item && typeof item === 'object' && !(item instanceof Date)
+            ? this.snakeToCamel(item as Record<string, unknown>)
+            : item
+        );
+      } else {
+        result[camelKey] = value;
+      }
+    }
+    
+    return result;
   }
 
   findById = async (req: Request, res: Response, employeeService: EmployeeService) => {
@@ -57,13 +85,176 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
     }
   };
 
+  /**
+   * Create employee with image upload
+   * POST /employees
+   */
+  createEmployee = async (req: Request, res: Response, employeeService: EmployeeService) => {
+    try {
+      const imagePath = req.file?.filename;
+
+      if (!imagePath) {
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ field: 'image_path', message: 'Employee image is required', type: 'required' }],
+          'Validation error',
+          400
+        );
+      }
+
+      console.log('=== DEBUG: req.body after validation ===');
+      console.log('province_id type:', typeof req.body.province_id, 'value:', req.body.province_id);
+      console.log('city_id type:', typeof req.body.city_id, 'value:', req.body.city_id);
+
+      // Convert snake_case to camelCase while preserving types (integers, dates, etc.)
+      const requestData = this.snakeToCamel({
+        ...req.body,
+        province_id: +req.body.province_id,
+        city_id: +req.body.city_id,
+        district_id: +req.body.district_id,
+        subdistrict_id: +req.body.subdistrict_id,
+        image_path: imagePath,
+      });
+
+      console.log('=== DEBUG: after snakeToCamel ===');
+      console.log('provinceId type:', typeof requestData.provinceId, 'value:', requestData.provinceId);
+      console.log('cityId type:', typeof requestData.cityId, 'value:', requestData.cityId);
+
+      const newEmployee = await employeeService.create(requestData as TEmployee);
+      
+      return this.getSuccessResponse(
+        res,
+        {
+          data: EmployeeResponseMapper.toListResponse(newEmployee),
+          metadata: {} as TMetadataResponse,
+        },
+        'Employee created successfully'
+      );
+    } catch (error) {
+      // Delete uploaded image if creation fails
+      if (req.file?.filename) {
+        const imagePath = path.join(process.cwd(), 'public', 'employee', req.file.filename);
+        fs.unlink(imagePath, (err) => {
+          if (err) console.error("Error deleting image:", err);
+        });
+      }
+
+      return this.handleError(
+        res,
+        error,
+        'Failed to create employee',
+        500,
+        {} as TEmployeeGetResponse,
+        {} as TMetadataResponse
+      );
+    }
+  };
+
+  /**
+   * Update employee with optional image upload
+   * PUT /employees/:id
+   */
+  updateEmployee = async (req: Request, res: Response, employeeService: EmployeeService) => {
+    const employeeId = req.params.id;
+    
+    try {
+      const imagePath = req.file?.filename;
+
+      // Remove old image if new image is uploaded
+      if (imagePath) {
+        const existingEmployee = await employeeService.findById(employeeId);
+        if (existingEmployee && existingEmployee.imagePath) {
+          const oldImagePath = path.join(process.cwd(), 'public', 'employee', existingEmployee.imagePath);
+          fs.unlink(oldImagePath, (err) => {
+            if (err) console.error("Error deleting old image:", err);
+          });
+        }
+      }
+
+      // Convert snake_case to camelCase while preserving types (integers, dates, etc.)
+      const requestData = this.snakeToCamel({
+        ...req.body,
+        ...(imagePath && { image_path: imagePath }),
+      });
+
+      const updatedEmployee = await employeeService.update(employeeId, requestData);
+      
+      return this.getSuccessResponse(
+        res,
+        {
+          data: EmployeeResponseMapper.toListResponse(updatedEmployee),
+          metadata: {} as TMetadataResponse,
+        },
+        'Employee updated successfully'
+      );
+    } catch (error) {
+      // Delete uploaded image if update fails
+      if (req.file?.filename) {
+        const imagePath = path.join(process.cwd(), 'public', 'employee', req.file.filename);
+        fs.unlink(imagePath, (err) => {
+          if (err) console.error("Error deleting image:", err);
+        });
+      }
+
+      return this.handleError(
+        res,
+        error,
+        'Failed to update employee',
+        500,
+        {} as TEmployeeGetResponse,
+        {} as TMetadataResponse
+      );
+    }
+  };
+
   getSchedules = async (req: Request, res: Response, employeeService: EmployeeService) => {
     try {
-      // This endpoint returns all employee-outlet assignments (schedules)
-      const schedules = await employeeService.getSchedules();
+      const view = req.query.view as string | undefined;
+
+      // Get data based on view parameter
+      const data = await employeeService.getSchedules(view);
       
-      // Map to proper response type
-      const schedulesResponse: TOutletAssignmentGetResponse[] = schedules.map(schedule =>
+      // For table view, return attendance data
+      if (view === 'table') {
+        const tableResponse: TAttendanceTableResponse[] = AttendanceTableResponseMapper.toListResponse(
+          data as Array<{
+            id: number;
+            employee: { name: string };
+            checkin_time: Date;
+            checkin_image_proof: string;
+            checkout_time: Date | null;
+            checkout_image_proof: string | null;
+            attendance_status: string;
+            late_minutes: number;
+            late_present_proof: string | null;
+            late_notes: string | null;
+            late_approval_status: string;
+          }>
+        );
+        
+        return this.getSuccessResponse(
+          res,
+          {
+            data: tableResponse,
+            metadata: {} as TMetadataResponse,
+          },
+          'Employee attendance table retrieved successfully'
+        );
+      }
+
+      // For timeline view (default), return outlet assignments
+      const schedulesResponse: TOutletAssignmentGetResponse[] = (data as Array<{
+        id: number;
+        outlet_id: number;
+        employee_id: number;
+        assigned_at: Date;
+        is_active: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        outlet: { id: number; name: string; location: string; check_in_time: string; check_out_time: string };
+        employee: { id: number; name: string; phone: string; nik: string; address: string };
+      }>).map(schedule =>
         OutletAssignmentResponseMapper.toListResponse(schedule)
       );
       
@@ -108,8 +299,14 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      // Image path from uploaded file (validated by Zod schema)
-      const imagePath = req.file?.filename ;
+      // Extract uploaded files
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+      const imagePath = files?.image_proof?.[0]?.filename;
+      const latePresentProof = files?.late_present_proof?.[0]?.filename;
+      
+      // Extract late_notes from body
+      const lateNotes = req.body.late_notes;
+
       if (!imagePath) {
         return this.getFailureResponse(res,
           { data: null, metadata: {} as TMetadataResponse } ,
@@ -118,6 +315,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           400
         )
       }
+      
       // Get the scheduled employee for this outlet
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
       
@@ -131,7 +329,13 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      const attendance = await employeeService.checkin(employeeId, outletId, imagePath);
+      const attendance = await employeeService.checkin(
+        employeeId, 
+        outletId, 
+        imagePath, 
+        lateNotes, 
+        latePresentProof
+      );
       const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(attendance);
 
       return this.getSuccessResponse(

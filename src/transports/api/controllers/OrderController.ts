@@ -144,7 +144,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       }
 
       const order = await this.orderService.getOrderById(orderId);
-      const data: TOrderDetailResponse = OrderResponseMapper.toOrderDetailResponse(order);
+      
+      // Use the same format as /order/my endpoint
+      const data: TMyOrderResponse = OrderResponseMapper.toMyOrderResponse(order);
 
       return this.getSuccessResponse(
         res,
@@ -295,7 +297,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       console.log(order)
       const response: TOrderGetResponse = OrderResponseMapper.toCreateResponse(order);
       // Fetch full order detail for WebSocket broadcast
-      const fullOrder = await this.orderService.getOrderById(parseInt(order.id));
+      const fullOrder = await this.orderService.getOrderForBroadcast(parseInt(order.id));
       const orderDetailForBroadcast: TOrderListResponse = OrderResponseMapper.toOrderListResponse(fullOrder);
 
       // Emit new-order event to all connected clients

@@ -23,6 +23,9 @@ export class AttendanceListResponseMapper {
     checkout_image_proof: string | null;
     checkin_time: Date;
     checkout_time: Date | null;
+    late_minutes: number;
+    late_notes: string | null;
+    late_present_proof: string | null;
     is_active: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -46,6 +49,9 @@ export class AttendanceListResponseMapper {
       checkout_image_proof: attendance.checkout_image_proof,
       checkin_time: attendance.checkin_time,
       checkout_time: attendance.checkout_time,
+      late_minutes: attendance.late_minutes,
+      late_notes: attendance.late_notes,
+      late_present_proof: attendance.late_present_proof,
       is_active: attendance.is_active,
       created_at: attendance.createdAt,
       updated_at: attendance.updatedAt,
@@ -74,6 +80,9 @@ export class AttendanceListResponseMapper {
     checkout_image_proof: string | null;
     checkin_time: Date;
     checkout_time: Date | null;
+    late_minutes: number;
+    late_notes: string | null;
+    late_present_proof: string | null;
     is_active: boolean;
     createdAt: Date;
     updatedAt: Date;

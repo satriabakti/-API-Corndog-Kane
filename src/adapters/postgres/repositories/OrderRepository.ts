@@ -82,7 +82,7 @@ export default class OrderRepository
 			select: { price: true },
 		});
 
-		return product?.price || null;
+		return product?.price || 0;
 	}
 
 	/**
@@ -323,6 +323,32 @@ export default class OrderRepository
 	 * Get single order with full details (outlet, employee, items with products)
 	 */
 	async getOrderById(orderId: number) {
+		return await this.prisma.order.findUnique({
+			where: { id: orderId },
+			include: {
+				outlet: true,
+				employee: true,
+				items: {
+					where: {
+						order_item_root_id: null, // Only get parent items
+					},
+					include: {
+						product: true,
+						sub_items: {
+							include: {
+								product: true,
+							},
+						},
+					},
+				},
+			},
+		});
+	}
+
+	/**
+	 * Get single order for WebSocket broadcast (with category for grouping)
+	 */
+	async getOrderForBroadcast(orderId: number) {
 		return await this.prisma.order.findUnique({
 			where: { id: orderId },
 			include: {

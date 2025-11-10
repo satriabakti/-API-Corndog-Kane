@@ -223,6 +223,7 @@ export class OrderResponseMapper {
     outlet: {
       id: number;
       name: string;
+      location: string;
     };
     items: Array<{
       id: number;
@@ -292,6 +293,7 @@ export class OrderResponseMapper {
       outlet: {
         id: order.outlet.id,
         name: order.outlet.name,
+        location: order.outlet.location,
       },
       items: mappedItems,
     };

@@ -102,8 +102,13 @@ export default class Controller<T, M> {
 				const pageNum = page ? parseInt(page as string) : 1;
 				const limitNum = limit ? parseInt(limit as string) : undefined;
 				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+				
+				// Build search config, filtering out undefined/invalid values
 				const search =
-					search_key && search_value
+					search_key && 
+					search_value && 
+					search_key !== 'undefined' && 
+					search_value !== 'undefined'
 						? [
 								{
 									field: search_key as string,

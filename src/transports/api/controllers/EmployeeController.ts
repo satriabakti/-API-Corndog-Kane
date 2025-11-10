@@ -12,6 +12,7 @@ import { AttendanceTableResponseMapper } from "../../../mappers/response-mappers
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
 import { AuthRequest } from "../../../policies/authMiddleware";
 import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
+import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
 import fs from "fs";
 import path from "path";
 
@@ -412,11 +413,44 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
+      // Get today's attendance to find checkin_time
+      const employeeRepository = new EmployeeRepository();
+      const todayAttendance = await employeeRepository.findTodayAttendance(employeeId);
+      
+      if (!todayAttendance) {
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ field: 'attendance', message: 'No check-in record found for today', type: 'not_found' }],
+          'No check-in record found for today',
+          404
+        );
+      }
+
+      // Get the day and time from checkin
+      const checkinDate = new Date(todayAttendance.checkinTime);
+      const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const day = days[checkinDate.getDay()];
+      const checkinTimeStr = `${String(checkinDate.getHours()).padStart(2, '0')}:${String(checkinDate.getMinutes()).padStart(2, '0')}:${String(checkinDate.getSeconds()).padStart(2, '0')}`;
+
+      // Find the matching setting
+      const setting = await outletRepository.getSettingForCheckin(outletId, day, checkinTimeStr);
+      
+      if (!setting) {
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ field: 'setting', message: 'No matching outlet setting found for your check-in time', type: 'not_found' }],
+          'No matching outlet setting found for your check-in time',
+          404
+        );
+      }
+
       const attendance = await employeeService.checkout(
         employeeId, 
         outletId, 
         imagePath, 
-        outlet.checkoutTime
+        setting.checkoutTime
       );
       
       const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(attendance);

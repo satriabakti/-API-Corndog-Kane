@@ -88,6 +88,7 @@ model Role {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   description String?
+  is_active   Boolean  @default(true)
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -130,6 +131,7 @@ model Product {
   inventories ProductInventory[]
   @@map("products")
 }
+
 model ProductInventory{
   id         Int      @id @default(autoincrement())
   product_id Int
@@ -139,6 +141,8 @@ model ProductInventory{
   product    Product  @relation(fields: [product_id], references: [id])
   createdAt   DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@map("product_inventories")
 }
 
 model ProductCategory {
@@ -316,11 +320,7 @@ model Outlet {
   name              String
   location          String
   code              String                  @unique @default(uuid())
-  pic_phone         String
   description       String?
-  check_in_time     String
-  check_out_time    String
-  salary            Int
   income_target     Int                     @default(0) 
   is_active         Boolean                 @default(true)
   user_id           Int                     @unique
@@ -332,9 +332,30 @@ model Outlet {
   product_requests  OutletProductRequest[]
   material_requests OutletMaterialRequest[]
   attendances       Attendance[]
-
+  settings          OutletSetting[]
 
   @@map("outlets")
+}
+enum DAY {
+  MONDAY
+  SUNDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+model OutletSetting {
+  id              Int @id @default(autoincrement())
+  outlet_id       Int
+  check_in_time   String
+  check_out_time  String
+  salary          Int
+  day             DAY[]
+  outlet          Outlet @relation(fields: [outlet_id], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@map("outlet_settings")
 }
 
 

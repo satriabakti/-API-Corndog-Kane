@@ -1,9 +1,9 @@
 // Inventory Entity Types
-// Unified types for Material and Product stock management
+// Material stock management only
 
 /**
  * Item type enum for inventory system
- * Determines whether stock in is for Material or Product
+ * Keep for backward compatibility
  */
 export enum ItemType {
 	MATERIAL = "MATERIAL",
@@ -12,39 +12,31 @@ export enum ItemType {
 
 /**
  * Product source enum (from Prisma schema)
- * Only PURCHASE is supported in this endpoint
+ * Keep for other endpoints
  */
 export enum ProductSource {
 	PURCHASE = "PURCHASE",
-	PRODUCTION = "PRODUCTION" // Not supported in this endpoint
+	PRODUCTION = "PRODUCTION"
 }
 
 /**
  * Single inventory stock in item (API layer - snake_case)
+ * Material only
  */
 export type TInventoryStockInItem = {
-	item_type: "MATERIAL" | "PRODUCT";
 	quantity: number;
 	unit_quantity: string;
 	price: number;
 	supplier_id: number;
-} & (
-	| {
-			item_type: "MATERIAL";
-			material_id?: number;
-			material?: {
-				name: string;
-				is_active?: boolean;
-			};
-	  }
-	| {
-			item_type: "PRODUCT";
-			product_id: number;
-	  }
-);
+	material_id?: number;
+	material?: {
+		name: string;
+		is_active?: boolean;
+	};
+};
 
 /**
- * Batch inventory stock in request (supports single or multiple items)
+ * Batch inventory stock in request (supports single or multiple material items)
  */
 export type TInventoryStockInRequest = {
 	items: TInventoryStockInItem[];
@@ -63,10 +55,11 @@ export type TInventoryStockInUpdateRequest = TInventoryStockInItem;
 /**
  * Inventory Stock In Item Entity - Domain entity (camelCase)
  * What service returns for single stock in operation
+ * Material only
  */
 export type TInventoryStockInEntity = {
 	id: number;
-	itemType: "MATERIAL" | "PRODUCT";
+	itemType: "MATERIAL";
 	itemName: string;
 	quantity: number;
 	unitQuantity: string;
@@ -97,10 +90,11 @@ export type TInventoryStockInBatchEntity = {
 
 /**
  * Inventory Buy List Item Entity - Domain entity (camelCase)
+ * Material only
  */
 export type TInventoryBuyListItemEntity = {
 	id: number;
-	itemType: "MATERIAL" | "PRODUCT";
+	itemType: "MATERIAL";
 	itemId: number;
 	itemName: string;
 	quantity: number;
@@ -120,10 +114,11 @@ export type TInventoryBuyListItemEntity = {
 /**
  * Single inventory stock in response (API layer - snake_case)
  * Used for both POST and PUT endpoints
+ * Material only
  */
 export type TInventoryStockInItemResponse = {
 	id: number;
-	item_type: "MATERIAL" | "PRODUCT";
+	item_type: "MATERIAL";
 	item_name: string;
 	quantity: number;
 	unit_quantity: string;
@@ -167,13 +162,14 @@ export type MaterialStockInEntity = {
 
 /**
  * Product stock in entity (internal - camelCase)
+ * Keep for other endpoints
  */
 export type ProductStockInEntity = {
 	productId: number;
 	quantity: number;
 	price: number;
 	supplierId: number;
-	sourceFrom: "PURCHASE"; // Only PURCHASE supported
+	sourceFrom: "PURCHASE";
 };
 
 /**
@@ -228,11 +224,11 @@ export type MaterialWithStocks = {
 
 /**
  * Single inventory buy list item (API layer - snake_case)
- * Unified response for Material purchase and Product PURCHASE
+ * Material purchase only
  */
 export type TInventoryBuyListItem = {
 	id: number;
-	item_type: "MATERIAL" | "PRODUCT";
+	item_type: "MATERIAL";
 	item_id: number;
 	item_name: string;
 	quantity: number;

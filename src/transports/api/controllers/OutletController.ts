@@ -7,7 +7,8 @@ import {
 	TOutletCreateRequest, 
 	TOutletGetResponse, 
 	TOutletGetResponseWithSettings, 
-	TOutletUpdateRequest, 
+	TOutletUpdateRequest,
+	TOutletUpdate,
 	TOutletWithSettings,
 	TOutletStockItem,
 	TMaterialStockItem
@@ -123,16 +124,18 @@ export class OutletController extends Controller<
 		try {
 			const outletData = req.body as TOutletCreateRequest;
 			const newOutlet = (await this.outletService.createOutlet({
-				checkinTime: outletData.setting.checkin_time,
-				checkoutTime: outletData.setting.checkout_time,
+				name: outletData.name,
+				location: outletData.location,
+				code: outletData.code,
 				description: outletData.description,
 				isActive: outletData.is_active,
-				location: outletData.location,
-				name: outletData.name,
-				code: outletData.code,
-				picPhone: outletData.pic_phone,
-				salary: +outletData.setting.salary,
-				incomeTarget: +outletData.setting.income_target,
+				incomeTarget: outletData.income_target,
+				settings: outletData.setting.map(s => ({
+					checkin_time: s.checkin_time,
+					checkout_time: s.checkout_time,
+					salary: s.salary,
+					days: s.days,
+				})),
 				user: outletData.user,
 				userId: outletData.user_id || 0,
 			})) as TOutletWithSettings;
@@ -157,28 +160,30 @@ export class OutletController extends Controller<
 	};
   updateOutlet = async (req: Request, res: Response): Promise<Response> => {
     try {
-      
       const { id } = req.params;
       const outletData = req.body as TOutletUpdateRequest;
-	  let setting = outletData.setting || {};
-	  if (Object.keys(setting).length > 0) {
-		setting = {
-		  checkInTime: setting.checkin_time,
-		  checkOutTime: setting.checkout_time,
-		  salary: setting.salary == null ? null : +setting.salary,
-		} as { checkInTime?: string | null; checkOutTime?: string | null; salary?: number | null };
-		
-	  }
-      const updatedOutlet = (await this.outletService.updateOutlet(+id, {
-        ...setting,
+      
+      const updatePayload: Partial<TOutletUpdate> = {
+        name: outletData.name,
+        location: outletData.location,
+        code: outletData.code,
         description: outletData.description,
         isActive: outletData.is_active,
-        location: outletData.location,
-        name: outletData.name,
-        code: outletData.code,
-        picPhone: outletData.pic_phone,
+        incomeTarget: outletData.income_target,
         userId: outletData.user_id,
-      })) as TOutletWithSettings;
+      };
+      
+      if (outletData.setting) {
+        updatePayload.settings = outletData.setting.map(s => ({
+          id: s.id,
+          checkin_time: s.checkin_time,
+          checkout_time: s.checkout_time,
+          salary: s.salary,
+          days: s.days,
+        }));
+      }
+      
+      const updatedOutlet = (await this.outletService.updateOutlet(+id, updatePayload)) as TOutletWithSettings;
       
       if (!updatedOutlet) {
         return this.getFailureResponse(
@@ -193,22 +198,22 @@ export class OutletController extends Controller<
       return this.getSuccessResponse(
         res,
         {
-          data: OutletResponseMapper.toListResponse(updatedOutlet as TOutletWithSettings),
+          data: OutletResponseMapper.toDetailResponse(updatedOutlet),
           metadata: {} as TMetadataResponse,
         },
         'Outlet updated successfully'
       );
-    } catch (error){
+    } catch (error) {
       return this.handleError(
         res,
         error,
-        "Failed to update outlet",
+        'Failed to update outlet',
         500,
         {} as TOutletGetResponse,
         {} as TMetadataResponse
       );
     }
-	}
+  };
 
 	assignEmployeeToOutlet = async (req: Request, res: Response): Promise<Response> => {
 		try {

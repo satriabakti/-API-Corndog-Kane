@@ -5,20 +5,17 @@ import { inventoryStockInSchema, inventoryStockInUpdateSchema } from '../../vali
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import InventoryService from '../../../../core/services/InventoryService';
 import MaterialRepository from '../../../../adapters/postgres/repositories/MaterialRepository';
-import { ProductRepository } from '../../../../adapters/postgres/repositories/ProductRepository';
 import SupplierRepository from '../../../../adapters/postgres/repositories/SupplierRepository';
 
 const router = express.Router();
 
 // Initialize repositories
 const materialRepository = new MaterialRepository();
-const productRepository = new ProductRepository();
 const supplierRepository = new SupplierRepository();
 
 // Initialize service
 const inventoryService = new InventoryService(
 	materialRepository,
-	productRepository,
 	supplierRepository
 );
 
@@ -27,45 +24,41 @@ const inventoryController = new InventoryController();
 
 /**
  * POST /api/v1/inventory/in
- * Unified batch stock in endpoint for both Material and Product
+ * Material stock in endpoint (batch supported)
  * 
- * Request body (Single Material):
+ * Request body (Single Material with existing material_id):
  * {
  *   "items": [
  *     {
- *       "item_type": "MATERIAL",
  *       "quantity": 100,
  *       "unit_quantity": "kg",
  *       "price": 50000,
  *       "supplier_id": 1,
- *       "material_id": 5,  // Optional if creating new material
- *       "material": {      // Optional if using existing material_id
- *         "name": "Flour",
+ *       "material_id": 5
+ *     }
+ *   ]
+ * }
+ * 
+ * Request body (Single Material - create new):
+ * {
+ *   "items": [
+ *     {
+ *       "quantity": 50,
+ *       "unit_quantity": "liter",
+ *       "price": 75000,
+ *       "supplier_id": 2,
+ *       "material": {
+ *         "name": "Minyak Goreng",
  *         "is_active": true
  *       }
  *     }
  *   ]
  * }
  * 
- * Request body (Single Product):
+ * Request body (Batch - Multiple Materials):
  * {
  *   "items": [
  *     {
- *       "item_type": "PRODUCT",
- *       "quantity": 50,
- *       "unit_quantity": "pcs",
- *       "price": 15000,
- *       "supplier_id": 2,
- *       "product_id": 3
- *     }
- *   ]
- * }
- * 
- * Request body (Batch - Multiple Items):
- * {
- *   "items": [
- *     {
- *       "item_type": "MATERIAL",
  *       "quantity": 100,
  *       "unit_quantity": "kg",
  *       "price": 50000,
@@ -73,12 +66,14 @@ const inventoryController = new InventoryController();
  *       "material_id": 5
  *     },
  *     {
- *       "item_type": "PRODUCT",
- *       "quantity": 30,
- *       "unit_quantity": "pcs",
- *       "price": 15000,
+ *       "quantity": 50,
+ *       "unit_quantity": "liter",
+ *       "price": 75000,
  *       "supplier_id": 2,
- *       "product_id": 7
+ *       "material": {
+ *         "name": "Minyak Goreng",
+ *         "is_active": true
+ *       }
  *     }
  *   ]
  * }
@@ -95,17 +90,14 @@ router.post(
 );
 
 /**
- * PUT /api/v1/inventory/in/:item_type/:id
- * Update stock in record for Material or Product
+ * PUT /api/v1/inventory/in/:id
+ * Update material stock in record
  * 
  * Path parameters:
- * - item_type: "MATERIAL" | "PRODUCT"
- * - id: number (record ID)
+ * - id: number (material_in record ID)
  * 
- * Request body (same as POST /inventory/in, single item):
- * Material example:
+ * Request body:
  * {
- *   "item_type": "MATERIAL",
  *   "quantity": 150,
  *   "unit_quantity": "kg",
  *   "price": 75000,
@@ -113,53 +105,47 @@ router.post(
  *   "material_id": 5
  * }
  * 
- * Product example:
+ * Or with new material:
  * {
- *   "item_type": "PRODUCT",
  *   "quantity": 40,
- *   "unit_quantity": "pcs",
+ *   "unit_quantity": "liter",
  *   "price": 20000,
  *   "supplier_id": 2,
- *   "product_id": 3
+ *   "material": {
+ *     "name": "Minyak Baru",
+ *     "is_active": true
+ *   }
  * }
  * 
- * Response example (same format as POST):
+ * Response example:
  * {
  *   "status": "success",
  *   "message": "Stock in record updated successfully",
  *   "data": {
  *     "id": 1,
- *     "item_type": "PRODUCT",
- *     "item_name": "Product Name",
- *     "quantity": 50,
- *     "unit_quantity": "liter",
+ *     "item_type": "MATERIAL",
+ *     "item_name": "Flour",
+ *     "quantity": 150,
+ *     "unit_quantity": "kg",
  *     "price": 75000,
  *     "supplier": {
- *       "id": 2,
+ *       "id": 1,
  *       "name": "PT.ABC"
  *     },
- *     "current_stock": 50,
+ *     "current_stock": 500,
  *     "created_at": "2025-10-30T18:32:34.884Z"
  *   }
  * }
- * 
- * Notes:
- * - If item_type changes (MATERIAL -> PRODUCT or vice versa):
- *   - Old record is deleted
- *   - New record is created with new ID
- * - If item_type stays the same:
- *   - Record is updated in place
- * - Response format is same as POST /inventory/in
  */
 router.put(
-	"/in/:item_type/:id",
+	"/in/:id",
 	validate(inventoryStockInUpdateSchema),
 	inventoryController.updateStockIn(inventoryService)
 );
 
 /**
  * GET /api/v1/inventory/buy
- * Unified buy list endpoint for both Material purchases and Product PURCHASE
+ * Material purchases list endpoint
  * 
  * Query parameters:
  * - page: number (default: 1)
@@ -179,30 +165,14 @@ router.put(
  *         "quantity": 100,
  *         "unit_quantity": "kg",
  *         "price": 50000,
- *         "total_price": 5000000,
  *         "supplier": {
  *           "id": 1,
  *           "name": "Supplier A"
  *         },
  *         "purchased_at": "2024-01-15T10:30:00.000Z"
- *       },
- *       {
- *         "id": 2,
- *         "item_type": "PRODUCT",
- *         "item_id": 7,
- *         "item_name": "Product X",
- *         "quantity": 30,
- *         "unit_quantity": "pcs",
- *         "price": 15000,
- *         "total_price": 450000,
- *         "supplier": {
- *           "id": 2,
- *           "name": "Supplier B"
- *         },
- *         "purchased_at": "2024-01-14T09:15:00.000Z"
  *       }
  *     ],
- *     "total": 2
+ *     "total": 1
  *   }
  * }
  */

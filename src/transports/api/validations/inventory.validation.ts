@@ -1,40 +1,26 @@
 import z from 'zod';
 
 /**
- * Single inventory stock in item schema
+ * Single inventory stock in item schema (Material only)
  */
-const inventoryStockInItemSchema = z.discriminatedUnion("item_type", [
-	// Material stock in schema
-	z.object({
-		item_type: z.literal("MATERIAL"),
-		quantity: z.number().positive('quantity must be positive'),
-		unit_quantity: z.string().min(1, 'unit_quantity is required'),
-		price: z.number().positive('price must be positive'),
-		supplier_id: z.number().int().positive('supplier_id is required'),
-		material_id: z.number().int().positive().optional(),
-		material: z.object({
-			name: z.string().min(1, 'material name is required'),
-			is_active: z.boolean().optional(),
-		}).optional(),
-	}).refine(
-		(data) => data.material_id || data.material,
-		{ message: 'Either material_id or material must be provided for MATERIAL type' }
-	),
-	
-	// Product stock in schema
-	z.object({
-		item_type: z.literal("PRODUCT"),
-		quantity: z.number().positive('quantity must be positive'),
-		unit_quantity: z.string().min(1, 'unit_quantity is required'),
-		price: z.number().positive('price must be positive'),
-		supplier_id: z.number().int().positive('supplier_id is required'),
-		product_id: z.number().int().positive('product_id is required for PRODUCT type'),
-	}),
-]);
+const inventoryStockInItemSchema = z.object({
+	quantity: z.number().positive('quantity must be positive'),
+	unit_quantity: z.string().min(1, 'unit_quantity is required'),
+	price: z.number().positive('price must be positive'),
+	supplier_id: z.number().int().positive('supplier_id is required'),
+	material_id: z.number().int().positive().optional(),
+	material: z.object({
+		name: z.string().min(1, 'material name is required'),
+		is_active: z.boolean().optional(),
+	}).optional(),
+}).refine(
+	(data) => data.material_id || data.material,
+	{ message: 'Either material_id or material must be provided' }
+);
 
 /**
  * Validation schema for batch inventory stock in endpoint
- * Supports multiple items (Material and/or Product)
+ * Supports multiple material items
  */
 export const inventoryStockInSchema = z.object({
 	body: z.object({
@@ -46,13 +32,10 @@ export const inventoryStockInSchema = z.object({
 
 /**
  * Validation schema for update inventory stock in endpoint
- * Single item update (Material or Product)
+ * Single material item update
  */
 export const inventoryStockInUpdateSchema = z.object({
 	params: z.object({
-		item_type: z.enum(["MATERIAL", "PRODUCT"], {
-			message: "item_type must be MATERIAL or PRODUCT",
-		}),
 		id: z.string().regex(/^\d+$/, "id must be a valid number"),
 	}),
 	body: inventoryStockInItemSchema,

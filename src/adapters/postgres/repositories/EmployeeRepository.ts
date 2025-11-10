@@ -4,6 +4,7 @@ import { EmployeeRepository as IEmployeeRepository } from "../../../core/reposit
 import Repository from "./Repository";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { AttendanceMapperEntity } from "../../../mappers/mappers/AttendanceMapperEntity";
+import { DAY } from "@prisma/client";
 
 export default class EmployeeRepository
   extends Repository<TEmployee>
@@ -88,8 +89,6 @@ export default class EmployeeRepository
             id: true,
             name: true,
             location: true,
-            check_in_time: true,
-            check_out_time: true,
           },
         },
       },
@@ -133,26 +132,40 @@ export default class EmployeeRepository
       throw new Error('Already checked in today');
     }
 
-    // Get outlet check_in_time to calculate late_minutes
-    const outlet = await this.prisma.outlet.findUnique({
-      where: { id: outletId },
-      select: { check_in_time: true },
-    });
-
-    if (!outlet) {
-      throw new Error('Outlet not found');
-    }
-
-    // Calculate late_minutes
+    // Get the current day and time
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const day = days[now.getDay()];
+
+    // Find matching outlet setting for current day and time
+    const settings = await this.prisma.outletSetting.findMany({
+      where: {
+        outlet_id: outletId,
+        day: { has: day as DAY },
+      },
+    });
+
+    // Filter to get settings where check_in_time <= current time
+    const validSettings = settings.filter(s => s.check_in_time <= currentTimeStr);
+    
+    if (validSettings.length === 0) {
+      throw new Error('No valid check-in time found for current time and day');
+    }
+
+    // Get the latest check_in_time
+    const setting = validSettings.reduce((latest, current) => 
+      current.check_in_time > latest.check_in_time ? current : latest
+    );
     
     // Parse outlet check_in_time (format: "HH:MM:SS")
-    const [outletHour, outletMinute] = outlet.check_in_time.split(':').map(Number);
+    const [outletHour, outletMinute] = setting.check_in_time.split(':').map(Number);
     
     // Convert to minutes for comparison
-    const currentTimeInMinutes = currentHour * 60 + currentMinute;
     const outletTimeInMinutes = outletHour * 60 + outletMinute;
     
     // Calculate how many minutes late (0 if on time or early)

@@ -98,25 +98,14 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 	}
 
 	/**
-	 * PUT /inventory/in/:item_type/:id
-	 * Update stock in record
+	 * PUT /inventory/in/:id
+	 * Update material stock in record
 	 */
 	updateStockIn(inventoryService: InventoryService) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { item_type, id } = req.params;
+				const { id } = req.params;
 				const requestData: TInventoryStockInUpdateRequest = req.body;
-
-				// Validate item_type
-				if (item_type !== "MATERIAL" && item_type !== "PRODUCT") {
-					return this.getFailureResponse(
-						res,
-						{ data: null, metadata: {} as TMetadataResponse },
-						[{ field: 'item_type', message: "Invalid item_type. Must be MATERIAL or PRODUCT", type: 'invalid' }],
-						"Validation failed",
-						400
-					);
-				}
 
 				// Validate id
 				const recordId = parseInt(id);
@@ -132,7 +121,6 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 
 				// Call service - returns entity
 				const result = await inventoryService.updateStockIn(
-					item_type as "MATERIAL" | "PRODUCT",
 					recordId,
 					requestData
 				);

@@ -18,9 +18,9 @@ export class OutletResponseMapper {
       location: outlet.location,
       code: outlet.code,
       pic_name: picName,
-      pic_phone: outlet.picPhone,
       description: outlet.description,
       is_active: outlet.isActive,
+      incomeTarget: outlet.incomeTarget,
       created_at: outlet.createdAt,
       updated_at: outlet.updatedAt,
     };
@@ -30,26 +30,39 @@ export class OutletResponseMapper {
    * Map User entity to detailed response format
    * Used in findById endpoints
    */
-  static toDetailResponse(outlet:TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
+  static toDetailResponse(outlet: TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
+    // Find the setting with the latest checkin_time
+    let latestSetting = outlet.settings && outlet.settings.length > 0 ? outlet.settings[0] : null;
+    if (latestSetting) {
+      for (const setting of outlet.settings) {
+        if (setting.checkinTime > latestSetting.checkinTime) {
+          latestSetting = setting;
+        }
+      }
+    }
+    
     return {
       id: outlet.id,
       setting: {
-        checkin_time: outlet.checkinTime,
-        checkout_time: outlet.checkoutTime,
-        salary: +outlet.salary,
-        income_target: +outlet.incomeTarget,
-        
+        checkin_time: latestSetting?.checkinTime || "00:00:00",
+        checkout_time: latestSetting?.checkoutTime || "00:00:00",
+        income_target: outlet.incomeTarget,
+        details: outlet.settings?.map(s => ({
+          id: s.id,
+          checkin_time: s.checkinTime,
+          checkout_time: s.checkoutTime,
+          salary: s.salary,
+          days: s.days,
+        })) || [],
       },
       name: outlet.name,
       location: outlet.location,
       code: outlet.code,
       pic_name: picName,
-      pic_phone: outlet.picPhone,
       description: outlet.description,
       is_active: outlet.isActive,
       created_at: outlet.createdAt,
       updated_at: outlet.updatedAt,
-      
     };
   }
 

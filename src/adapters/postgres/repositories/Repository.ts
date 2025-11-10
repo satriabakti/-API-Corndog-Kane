@@ -84,21 +84,36 @@ function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknow
       const snakeKey = toSnakeCase(key);
       const value = obj[key];
       
+      // Preserve numbers (integers, floats) as-is
+      if (typeof value === 'number') {
+        result[snakeKey] = value;
+      }
+      // Preserve booleans as-is
+      else if (typeof value === 'boolean') {
+        result[snakeKey] = value;
+      }
+      // Preserve Date objects as-is
+      else if (value instanceof Date) {
+        result[snakeKey] = value;
+      }
       // Convert string dates to Date objects
-      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
         result[snakeKey] = new Date(value);
       }
-      // Recursively convert nested objects
-      else if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      // Recursively convert nested objects (but not Date objects)
+      else if (value && typeof value === 'object' && !Array.isArray(value)) {
         result[snakeKey] = convertToSnakeCase(value as Record<string, unknown>);
-      } else if (Array.isArray(value)) {
-        // Handle arrays of objects
+      } 
+      // Handle arrays
+      else if (Array.isArray(value)) {
         result[snakeKey] = value.map(item => 
           item && typeof item === 'object' && !(item instanceof Date)
             ? convertToSnakeCase(item as Record<string, unknown>)
             : item
         );
-      } else {
+      } 
+      // Default: preserve the value as-is (strings, null, undefined, etc.)
+      else {
         result[snakeKey] = value;
       }
     }

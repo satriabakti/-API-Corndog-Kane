@@ -127,8 +127,18 @@ model Product {
   order_items OrderItem[]
   stocks      ProductStock[]
   requests    OutletProductRequest[]
-
+  inventories ProductInventory[]
   @@map("products")
+}
+model ProductInventory{
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  quantity   Int
+  material_id Int
+  material   material @relation(fields: [material_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model ProductCategory {
@@ -146,11 +156,21 @@ model ProductCategory {
 // HR MODULE - Employee Management & Payroll
 // ============================================================================
 
+enum BLOODTYPE {
+  A
+  B
+  AB
+  O
+}
+enum Gender {
+  MALE
+  FEMALE
+}
 model Employee {
   id              Int              @id @default(autoincrement())
+  nik             String           @unique
   name            String
   phone           String
-  nik             String           @unique
   address         String
   province_id     Int
   city_id         Int
@@ -159,6 +179,15 @@ model Employee {
   merital_status  MeritalStatus
   religion        String
   birth_date      DateTime
+  birth_place     String
+  blood_type      BLOODTYPE 
+  rt              String
+  rw              String
+  work_type      String
+  position        String
+  notes           String?
+  image_path      String
+  gender          Gender
   hire_date       DateTime
   is_active       Boolean          @default(true)
   createdAt       DateTime         @default(now())
@@ -219,7 +248,7 @@ model material {
   material_in  MaterialIn[]
   material_out MaterialOut[]
   requests     OutletMaterialRequest[]
-
+  products     ProductInventory[]
   @@map("materials")
 }
 

@@ -24,6 +24,9 @@ const employeeService = new EmployeeService(new EmployeeRepository());
 const uploadAttendanceImage = storage('absent');
 const uploadMultipleAttendanceImages = storageMultiple('absent');
 
+// Upload middleware for employee image
+const uploadEmployeeImage = storage('employee');
+
 router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
 // IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
 router.get('/schedule', (req, res) => employeeController.getSchedules(req, res, employeeService));
@@ -51,8 +54,16 @@ router.post('/checkout',
 );
 
 router.get('/:id', validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));
-router.post('/', validate(createEmployeeSchema), employeeController.create(employeeService, EmployeeResponseMapper, 'Employee created successfully'));
-router.put('/:id', validate(updateEmployeeSchema), employeeController.update(employeeService, EmployeeResponseMapper, 'Employee updated successfully'));
+router.post('/', 
+  uploadEmployeeImage('image'),
+  validate(createEmployeeSchema), 
+  (req, res) => employeeController.createEmployee(req, res, employeeService)
+);
+router.put('/:id', 
+  uploadEmployeeImage('image_path'),
+  validate(updateEmployeeSchema), 
+  (req, res) => employeeController.updateEmployee(req, res, employeeService)
+);
 router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
 
 export default router;

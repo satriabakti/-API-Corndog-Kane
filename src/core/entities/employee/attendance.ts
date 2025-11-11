@@ -120,6 +120,7 @@ export type TAttendanceTableResponse = {
   id: number;
   employee_name: string;
   employee_image_path: string; // Added: employee image path
+  outlet_name: string; // Added: outlet name
   date: Date;
   checkin_time: Date | null;
   checkin_proof: string | null;

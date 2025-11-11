@@ -227,6 +227,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: Array<{
             id: number;
             employee: { name: string; image_path: string };
+            outlet: { name: string };
             checkin_time: Date;
             checkin_image_proof: string;
             checkout_time: Date | null;

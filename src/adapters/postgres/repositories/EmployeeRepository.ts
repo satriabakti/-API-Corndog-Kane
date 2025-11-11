@@ -78,6 +78,11 @@ export default class EmployeeRepository
               image_path: true, // Added: employee image path
             },
           },
+          outlet: {
+            select: {
+              name: true, // Added: outlet name
+            },
+          },
           checkin_time: true,
           checkin_image_proof: true,
           checkout_time: true,

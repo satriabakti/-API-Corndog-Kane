@@ -215,11 +215,13 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const startDate = req.query.start_date as string | undefined;
       const endDate = req.query.end_date as string | undefined;
       const status = req.query.status as string | undefined;
+      const searchKey = req.query.search_key as string | undefined;
+      const searchValue = req.query.search_value as string | undefined;
       const page = req.query.page ? parseInt(req.query.page as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
 
       // Get data based on view parameter and date filters
-      const result = await employeeService.getSchedules(view, startDate, endDate, status, page, limit);
+      const result = await employeeService.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
       
       // For table view, return attendance data with pagination
       if (view === 'table') {

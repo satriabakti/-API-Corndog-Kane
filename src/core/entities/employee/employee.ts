@@ -23,10 +23,10 @@ export type TEmployee = {
   phone: string;
   nik: string;
   address: string;
-  provinceId: number;
-  cityId: number;
-  districtId: number;
-  subdistrictId: number;
+  provinceId: bigint;
+  cityId: bigint;
+  districtId: bigint;
+  subdistrictId: bigint;
   meritalStatus: MeritalStatus;
   religion: string;
   birthDate: Date;
@@ -49,10 +49,10 @@ export type TEmployeeCreate = Omit<TEmployee, "id" | "createdAt" | "updatedAt">;
 
 export type TEmployeeCreateRequest = Omit<TEmployee, "id" | "createdAt" | "updatedAt" | "isActive" | "provinceId" | "cityId" | "districtId" | "subdistrictId" | "meritalStatus" | "birthDate" | "birthPlace" | "bloodType" | "workType" | "imagePath" | "hireDate"> & {
   is_active?: boolean;
-  province_id: number;
-  city_id: number;
-  district_id: number;
-  subdistrict_id: number;
+  province_id: bigint;
+  city_id: bigint;
+  district_id: bigint;
+  subdistrict_id: bigint;
   merital_status: MeritalStatus;
   birth_date: Date;
   birth_place: string;
@@ -66,10 +66,10 @@ export type TEmployeeUpdateRequest = Partial<TEmployeeCreateRequest>;
 
 export type TEmployeeGetResponse = Omit<TEmployee, "isActive" | "createdAt" | "updatedAt" | "provinceId" | "cityId" | "districtId" | "subdistrictId" | "meritalStatus" | "birthDate" | "birthPlace" | "bloodType" | "workType" | "imagePath" | "hireDate"> & {
   is_active: boolean;
-  province_id: number;
-  city_id: number;
-  district_id: number;
-  subdistrict_id: number;
+  province_id: bigint;
+  city_id: bigint;
+  district_id: bigint;
+  subdistrict_id: bigint;
   merital_status: MeritalStatus;
   birth_date: Date;
   birth_place: string;

@@ -176,10 +176,10 @@ model Employee {
   name            String
   phone           String
   address         String
-  province_id     Int
-  city_id         Int
-  district_id     Int
-  subdistrict_id  Int
+  province_id     BigInt
+  city_id         BigInt
+  district_id     BigInt
+  subdistrict_id  BigInt
   merital_status  MeritalStatus
   religion        String
   birth_date      DateTime

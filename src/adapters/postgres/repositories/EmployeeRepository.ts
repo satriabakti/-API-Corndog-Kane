@@ -4,7 +4,7 @@ import { EmployeeRepository as IEmployeeRepository } from "../../../core/reposit
 import Repository from "./Repository";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { AttendanceMapperEntity } from "../../../mappers/mappers/AttendanceMapperEntity";
-import { DAY, AttendanceStatus } from "@prisma/client";
+import { DAY, AttendanceStatus, ApprovalStatus } from "@prisma/client";
 
 export default class EmployeeRepository
   extends Repository<TEmployee>
@@ -22,6 +22,8 @@ export default class EmployeeRepository
     startDate?: string, 
     endDate?: string,
     status?: string,
+    searchKey?: string,
+    searchValue?: string,
     page?: number,
     limit?: number
   ) {
@@ -49,6 +51,40 @@ export default class EmployeeRepository
       statusFilter.attendance_status = status as AttendanceStatus;
     }
 
+    // Build search filter based on search_key and search_value
+    const searchFilter: {
+      employee?: { name?: { contains: string; mode: 'insensitive' } };
+      outlet?: { name?: { contains: string; mode: 'insensitive' } };
+      attendance_status?: AttendanceStatus;
+      late_approval_status?: ApprovalStatus;
+    } = {};
+    if (searchKey && searchValue) {
+      switch (searchKey) {
+        case 'employee_name':
+          searchFilter.employee = {
+            name: {
+              contains: searchValue,
+              mode: 'insensitive',
+            },
+          };
+          break;
+        case 'outlet_name':
+          searchFilter.outlet = {
+            name: {
+              contains: searchValue,
+              mode: 'insensitive',
+            },
+          };
+          break;
+        case 'attendance_status':
+          searchFilter.attendance_status = searchValue as AttendanceStatus;
+          break;
+        case 'late_approval_status':
+          searchFilter.late_approval_status = searchValue as ApprovalStatus;
+          break;
+      }
+    }
+
     // For table view, return attendance data with pagination
     if (view === 'table') {
       const currentPage = page && page > 0 ? page : 1;
@@ -61,6 +97,7 @@ export default class EmployeeRepository
           is_active: true,
           ...dateFilter,
           ...statusFilter,
+          ...searchFilter,
         },
       });
 
@@ -69,6 +106,7 @@ export default class EmployeeRepository
           is_active: true,
           ...dateFilter,
           ...statusFilter,
+          ...searchFilter,
         },
         select: {
           id: true,

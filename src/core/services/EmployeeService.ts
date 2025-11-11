@@ -16,10 +16,12 @@ export default class EmployeeService extends Service<TEmployee> {
     startDate?: string, 
     endDate?: string,
     status?: string,
+    searchKey?: string,
+    searchValue?: string,
     page?: number,
     limit?: number
   ) {
-    return await this.repository.getSchedules(view, startDate, endDate, status, page, limit);
+    return await this.repository.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
   }
 
   /**

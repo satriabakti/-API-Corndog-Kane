@@ -4,7 +4,7 @@ import { EmployeeRepository as IEmployeeRepository } from "../../../core/reposit
 import Repository from "./Repository";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { AttendanceMapperEntity } from "../../../mappers/mappers/AttendanceMapperEntity";
-import { DAY } from "@prisma/client";
+import { DAY, AttendanceStatus } from "@prisma/client";
 
 export default class EmployeeRepository
   extends Repository<TEmployee>
@@ -17,7 +17,14 @@ export default class EmployeeRepository
     this.attendanceMapper = new EntityMapper<TAttendanceWithID>(AttendanceMapperEntity);
   }
 
-  async getSchedules(view?: string, startDate?: string, endDate?: string) {
+  async getSchedules(
+    view?: string, 
+    startDate?: string, 
+    endDate?: string,
+    status?: string,
+    page?: number,
+    limit?: number
+  ) {
     // Build date filter for attendance queries
     const dateFilter: { checkin_time?: { gte?: Date; lte?: Date } } = {};
     if (startDate || endDate) {
@@ -36,18 +43,39 @@ export default class EmployeeRepository
       }
     }
 
-    // For table view, return attendance data
+    // Build status filter - cast to AttendanceStatus enum
+    const statusFilter: { attendance_status?: AttendanceStatus } = {};
+    if (status) {
+      statusFilter.attendance_status = status as AttendanceStatus;
+    }
+
+    // For table view, return attendance data with pagination
     if (view === 'table') {
+      const currentPage = page && page > 0 ? page : 1;
+      const pageSize = limit && limit > 0 ? limit : 10;
+      const skip = (currentPage - 1) * pageSize;
+
+      // Get total count for pagination
+      const total = await this.prisma.attendance.count({
+        where: {
+          is_active: true,
+          ...dateFilter,
+          ...statusFilter,
+        },
+      });
+
       const attendances = await this.prisma.attendance.findMany({
         where: {
           is_active: true,
           ...dateFilter,
+          ...statusFilter,
         },
         select: {
           id: true,
           employee: {
             select: {
               name: true,
+              image_path: true, // Added: employee image path
             },
           },
           checkin_time: true,
@@ -63,9 +91,19 @@ export default class EmployeeRepository
         orderBy: {
           checkin_time: 'desc',
         },
+        skip,
+        take: pageSize,
       });
 
-      return attendances;
+      return {
+        data: attendances,
+        pagination: {
+          total,
+          page: currentPage,
+          limit: pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      };
     }
 
     // For timeline view (default), return outlet assignments
@@ -381,5 +419,23 @@ export default class EmployeeRepository
 
     // Return raw data - mapping to response format happens in Controller layer
     return { data: attendances, total };
+  }
+
+  /**
+   * Update late approval status for an attendance record
+   * PATCH /employees/:id/:status
+   */
+  async updateLateApprovalStatus(
+    attendanceId: number,
+    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  ): Promise<TAttendanceWithID> {
+    const updated = await this.prisma.attendance.update({
+      where: { id: attendanceId },
+      data: {
+        late_approval_status: status,
+      },
+    });
+
+    return this.attendanceMapper.mapToEntity(updated) as TAttendanceWithID;
   }
 }

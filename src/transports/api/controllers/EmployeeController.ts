@@ -214,16 +214,19 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const view = req.query.view as string | undefined;
       const startDate = req.query.start_date as string | undefined;
       const endDate = req.query.end_date as string | undefined;
+      const status = req.query.status as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
 
       // Get data based on view parameter and date filters
-      const data = await employeeService.getSchedules(view, startDate, endDate);
+      const result = await employeeService.getSchedules(view, startDate, endDate, status, page, limit);
       
-      // For table view, return attendance data
+      // For table view, return attendance data with pagination
       if (view === 'table') {
-        const tableResponse: TAttendanceTableResponse[] = AttendanceTableResponseMapper.toListResponse(
-          data as Array<{
+        const resultWithPagination = result as {
+          data: Array<{
             id: number;
-            employee: { name: string };
+            employee: { name: string; image_path: string };
             checkin_time: Date;
             checkin_image_proof: string;
             checkout_time: Date | null;
@@ -233,21 +236,36 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
             late_present_proof: string | null;
             late_notes: string | null;
             late_approval_status: string;
-          }>
+          }>;
+          pagination: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+          };
+        };
+
+        const tableResponse: TAttendanceTableResponse[] = AttendanceTableResponseMapper.toListResponse(
+          resultWithPagination.data
         );
         
         return this.getSuccessResponse(
           res,
           {
             data: tableResponse,
-            metadata: {} as TMetadataResponse,
+            metadata: {
+              page: resultWithPagination.pagination.page,
+              limit: resultWithPagination.pagination.limit,
+              total_records: resultWithPagination.pagination.total,
+              total_pages: resultWithPagination.pagination.totalPages,
+            } as TMetadataResponse,
           },
           'Employee attendance table retrieved successfully'
         );
       }
 
       // For timeline view (default), return outlet assignments
-      const schedulesResponse: TOutletAssignmentGetResponse[] = (data as Array<{
+      const schedulesResponse: TOutletAssignmentGetResponse[] = (result as Array<{
         id: number;
         outlet_id: number;
         employee_id: number;
@@ -518,6 +536,55 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to retrieve attendances';
+      
+      return this.handleError(
+        res,
+        error,
+        errorMessage,
+        500,
+        null,
+        {} as TMetadataResponse
+      );
+    }
+  };
+
+  /**
+   * Update late approval status
+   * PATCH /employees/:id/:status
+   */
+  updateLateApprovalStatus = async (req: Request, res: Response, employeeService: EmployeeService) => {
+    try {
+      const { id, status } = req.params;
+      const attendanceId = parseInt(id);
+
+      if (isNaN(attendanceId)) {
+        return this.getFailureResponse(
+          res,
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ field: 'id', message: 'Invalid attendance ID', type: 'invalid' }],
+          'Invalid attendance ID',
+          400
+        );
+      }
+
+      // Update the late approval status
+      const updatedAttendance = await employeeService.updateLateApprovalStatus(
+        attendanceId,
+        status as 'PENDING' | 'APPROVED' | 'REJECTED'
+      );
+
+      const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(updatedAttendance);
+
+      return this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        `Late approval status updated to ${status}`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update late approval status';
       
       return this.handleError(
         res,

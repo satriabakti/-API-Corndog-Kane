@@ -8,6 +8,7 @@ export class AttendanceTableResponseMapper {
     id: number;
     employee: {
       name: string;
+      image_path: string;
     };
     checkin_time: Date;
     checkin_image_proof: string;
@@ -22,6 +23,7 @@ export class AttendanceTableResponseMapper {
     return {
       id: attendance.id,
       employee_name: attendance.employee.name,
+      employee_image_path: attendance.employee.image_path,
       date: attendance.checkin_time,
       checkin_time: attendance.checkin_time,
       checkin_proof: attendance.checkin_image_proof,
@@ -42,6 +44,7 @@ export class AttendanceTableResponseMapper {
     id: number;
     employee: {
       name: string;
+      image_path: string;
     };
     checkin_time: Date;
     checkin_image_proof: string;

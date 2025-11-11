@@ -43,6 +43,15 @@ export type TAttendanceCheckinRequest = {
 }
 
 /**
+ * Request type for updating late approval status
+ * PATCH /employees/:id/:status
+ */
+export type TAttendanceUpdateLateApprovalRequest = {
+  id: number;
+  late_approval_status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
+/**
  * Request type for check-out
  * Updates today's attendance record
  * Image is uploaded via multipart/form-data
@@ -110,6 +119,7 @@ export type TAttendanceListResponse = {
 export type TAttendanceTableResponse = {
   id: number;
   employee_name: string;
+  employee_image_path: string; // Added: employee image path
   date: Date;
   checkin_time: Date | null;
   checkin_proof: string | null;

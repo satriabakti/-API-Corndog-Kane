@@ -47,4 +47,10 @@ export type EmployeeRepository = Repository<TEmployee> & {
     page?: number, 
     limit?: number
   ): Promise<{ data: TAttendanceWithRelations[]; total: number }>;
+
+  // Update late approval status
+  updateLateApprovalStatus(
+    attendanceId: number,
+    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  ): Promise<TAttendanceWithID>;
 } 

@@ -150,5 +150,27 @@ export const getSchedulesSchema = z.object({
       (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
       { message: "end_date must be in format YYYY-MM-DD" }
     ),
+    status: z.enum(['PRESENT', 'SICK', 'NOT_PRESENT', 'EXCUSED', 'CUTI']).optional(),
+    page: z.string().optional().refine(
+      (val) => !val || /^\d+$/.test(val),
+      { message: "page must be a positive number" }
+    ),
+    limit: z.string().optional().refine(
+      (val) => !val || /^\d+$/.test(val),
+      { message: "limit must be a positive number" }
+    ),
+  }),
+});
+
+/**
+ * Validation schema for updating late approval status
+ * PATCH /employees/:id/:status
+ */
+export const updateLateApprovalStatusSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Attendance ID is required"),
+    status: z.enum(['PENDING', 'APPROVED', 'REJECTED'], {
+      message: "Status must be PENDING, APPROVED, or REJECTED"
+    }),
   }),
 });

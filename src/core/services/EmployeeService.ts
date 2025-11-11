@@ -11,8 +11,15 @@ export default class EmployeeService extends Service<TEmployee> {
     super(repository);
   }
 
-  async getSchedules(view?: string, startDate?: string, endDate?: string) {
-    return await this.repository.getSchedules(view, startDate, endDate);
+  async getSchedules(
+    view?: string, 
+    startDate?: string, 
+    endDate?: string,
+    status?: string,
+    page?: number,
+    limit?: number
+  ) {
+    return await this.repository.getSchedules(view, startDate, endDate, status, page, limit);
   }
 
   /**
@@ -79,5 +86,16 @@ export default class EmployeeService extends Service<TEmployee> {
     limit?: number
   ): Promise<{ data: TAttendanceWithRelations[]; total: number }> {
     return await this.repository.getAttendancesByOutlet(outletId, date, page, limit);
+  }
+
+  /**
+   * Update late approval status for an attendance record
+   * PATCH /employees/:id/:status
+   */
+  async updateLateApprovalStatus(
+    attendanceId: number,
+    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  ): Promise<TAttendanceWithID> {
+    return await this.repository.updateLateApprovalStatus(attendanceId, status);
   }
 }

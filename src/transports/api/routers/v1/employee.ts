@@ -8,6 +8,7 @@ import {
   getEmployeesSchema,
   getAttendancesByOutletSchema,
   getSchedulesSchema,
+  updateLateApprovalStatusSchema,
 } from '../../validations/employee.validation';
 import { EmployeeController } from '../../controllers/EmployeeController';
 import EmployeeService from '../../../../core/services/EmployeeService';
@@ -52,6 +53,13 @@ router.post('/checkout',
   authMiddleware, 
   uploadAttendanceImage('image_proof'), 
   (req, res) => employeeController.checkout(req, res, employeeService)
+);
+
+// Update late approval status - must be before /:id route
+router.patch('/:id/:status', 
+  authMiddleware,
+  validate(updateLateApprovalStatusSchema), 
+  (req, res) => employeeController.updateLateApprovalStatus(req, res, employeeService)
 );
 
 router.get('/:id', validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));

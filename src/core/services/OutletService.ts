@@ -112,7 +112,18 @@ export default class OutletService extends Service<TOutlet> {
     
     // Process each date
     for (const date of dates) {
-      // Check for existing assignment on this outlet for this date
+      // FIRST: Check if the new employee is already assigned to a DIFFERENT outlet on this date
+      const newEmployeeExistingAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
+      
+      if (newEmployeeExistingAssignment && newEmployeeExistingAssignment.outlet_id !== outletId) {
+        // Employee is assigned to another outlet - delete that assignment first
+        await this.repository.deleteAssignmentsByOutletAndDate(
+          newEmployeeExistingAssignment.outlet_id,
+          date
+        );
+      }
+      
+      // SECOND: Check for existing assignment on this outlet for this date
       const existingAssignment = await this.repository.findAssignmentByOutletAndDate(outletId, date);
       
       if (!existingAssignment) {

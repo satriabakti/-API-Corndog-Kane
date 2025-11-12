@@ -7,6 +7,9 @@ export const assignEmployeeToOutletSchema = z.object({
   }),
   body: z.object({
     date: z.string().transform((val) => new Date(val)),
-    is_for_one_week: z.boolean(),
+    is_for_one_week: z.boolean().optional().default(false),
+    is_for_one_month: z.boolean().optional().default(false),
+    notes: z.string().optional(),
+    previous_status: z.enum(['SICK', 'PRESENT', 'NOT_PRESENT', 'EXCUSED', 'CUTI']).optional(),
   }),
 });

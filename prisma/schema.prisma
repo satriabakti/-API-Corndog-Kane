@@ -364,6 +364,7 @@ model OutletEmployee {
   outlet_id   Int
   employee_id Int
   assigned_at DateTime @default(now())
+
   outlet      Outlet   @relation(fields: [outlet_id], references: [id])
   employee    Employee @relation(fields: [employee_id], references: [id])
   is_active   Boolean  @default(true)
@@ -401,6 +402,7 @@ model Attendance {
   late_present_proof  String?
   late_approval_status ApprovalStatus @default(PENDING)
   attendance_status   AttendanceStatus @default(PRESENT)
+  notes               String?
   is_active            Boolean   @default(true)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

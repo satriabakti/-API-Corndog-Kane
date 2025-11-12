@@ -2,7 +2,7 @@ import { TOutlet, TOutletWithSettings, TOutletStockItem, TMaterialStockItem, TOu
 import { TOutletAssignmentWithRelations } from "../../../core/entities/outlet/assignment";
 import { OutletRepository as IOutletRepository } from "../../../core/repositories/outlet";
 import Repository from "./Repository";
-import { DAY } from "@prisma/client";
+import { DAY, AttendanceStatus, Attendance } from "@prisma/client";
 
 export default class OutletRepository
   extends Repository<TOutlet>
@@ -556,4 +556,266 @@ export default class OutletRepository
       total,
     };
   }
+
+  /**
+   * Find existing assignment for outlet on a specific date
+   */
+  async findAssignmentByOutletAndDate(
+    outletId: number,
+    date: Date
+  ): Promise<TOutletAssignmentWithRelations | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const assignment = await this.prisma.outletEmployee.findFirst({
+      where: {
+        outlet_id: outletId,
+        assigned_at: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        is_active: true,
+      },
+      include: {
+        outlet: true,
+        employee: true,
+      },
+    });
+
+    return assignment as unknown as TOutletAssignmentWithRelations | null;
+  }
+
+  /**
+   * Find attendance for employee on outlet and date with specific status
+   */
+  async findAttendanceByEmployeeOutletDate(
+    employeeId: number,
+    outletId: number,
+    date: Date,
+    status: AttendanceStatus = 'PRESENT'
+  ): Promise<Attendance | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await this.prisma.attendance.findFirst({
+      where: {
+        employee_id: employeeId,
+        outlet_id: outletId,
+        checkin_time: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        attendance_status: status,
+        is_active: true,
+      },
+    });
+  }
+
+  /**
+   * Find current assignment for employee on a specific date
+   */
+  async findEmployeeAssignmentByDate(
+    employeeId: number,
+    date: Date
+  ): Promise<TOutletAssignmentWithRelations | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const assignment = await this.prisma.outletEmployee.findFirst({
+      where: {
+        employee_id: employeeId,
+        assigned_at: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        is_active: true,
+      },
+      include: {
+        outlet: true,
+        employee: true,
+      },
+    });
+
+    return assignment as unknown as TOutletAssignmentWithRelations | null;
+  }
+
+  /**
+   * Swap employees between two outlets on a specific date
+   */
+  async swapEmployeeAssignments(
+    employee1Id: number,
+    employee2Id: number,
+    outlet1Id: number,
+    outlet2Id: number,
+    date: Date
+  ): Promise<TOutletAssignmentWithRelations[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Deactivate both current assignments
+      await tx.outletEmployee.updateMany({
+        where: {
+          OR: [
+            { outlet_id: outlet1Id, employee_id: employee1Id, assigned_at: { gte: startOfDay, lte: endOfDay } },
+            { outlet_id: outlet2Id, employee_id: employee2Id, assigned_at: { gte: startOfDay, lte: endOfDay } },
+          ],
+          is_active: true,
+        },
+        data: { is_active: false },
+      });
+
+      // 2. Create swapped assignments
+      const assignment1 = await tx.outletEmployee.create({
+        data: {
+          outlet_id: outlet2Id,
+          employee_id: employee1Id,
+          assigned_at: date,
+          is_active: true,
+        },
+        include: {
+          outlet: true,
+          employee: true,
+        },
+      });
+
+      const assignment2 = await tx.outletEmployee.create({
+        data: {
+          outlet_id: outlet1Id,
+          employee_id: employee2Id,
+          assigned_at: date,
+          is_active: true,
+        },
+        include: {
+          outlet: true,
+          employee: true,
+        },
+      });
+
+      return [assignment1, assignment2] as unknown as TOutletAssignmentWithRelations[];
+    });
+  }
+
+  /**
+   * Replace employee with attendance record for previous employee
+   */
+  async replaceEmployeeWithAttendance(
+    oldEmployeeId: number,
+    newEmployeeId: number,
+    outletId: number,
+    date: Date,
+    previousStatus: AttendanceStatus,
+    notes?: string
+  ): Promise<{ assignment: TOutletAssignmentWithRelations; attendance: Attendance }> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Deactivate old employee's assignment
+      await tx.outletEmployee.updateMany({
+        where: {
+          outlet_id: outletId,
+          employee_id: oldEmployeeId,
+          assigned_at: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          is_active: true,
+        },
+        data: { is_active: false },
+      });
+
+      // 2. Create attendance for old employee with specified status
+      const attendance = await tx.attendance.create({
+        data: {
+          employee_id: oldEmployeeId,
+          outlet_id: outletId,
+          attendance_status: previousStatus,
+          checkin_time: startOfDay,
+          checkin_image_proof: 'SYSTEM_GENERATED_PLACEHOLDER',
+          late_notes: notes || `System generated: ${previousStatus} - Employee reassigned`,
+          late_approval_status: 'APPROVED',
+          is_active: true,
+        },
+      });
+
+      // 3. Deactivate any existing assignment for new employee on this outlet/date
+      await tx.outletEmployee.updateMany({
+        where: {
+          outlet_id: outletId,
+          employee_id: newEmployeeId,
+          assigned_at: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          is_active: true,
+        },
+        data: { is_active: false },
+      });
+
+      // 4. Create new assignment for new employee
+      const assignment = await tx.outletEmployee.create({
+        data: {
+          outlet_id: outletId,
+          employee_id: newEmployeeId,
+          assigned_at: date,
+          is_active: true,
+        },
+        include: {
+          outlet: true,
+          employee: true,
+        },
+      });
+
+      return {
+        assignment: assignment as unknown as TOutletAssignmentWithRelations,
+        attendance,
+      };
+    });
+  }
+
+  /**
+   * Delete all employee assignments for a specific outlet on a specific date
+   * @param outletId - The outlet ID
+   * @param date - The date to delete assignments for
+   * @returns Number of deleted assignments
+   */
+  async deleteAssignmentsByOutletAndDate(
+    outletId: number,
+    date: Date
+  ): Promise<number> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const result = await this.prisma.outletEmployee.deleteMany({
+      where: {
+        outlet_id: outletId,
+        assigned_at: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    return result.count;
+  }
 }
+

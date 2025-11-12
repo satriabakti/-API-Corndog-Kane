@@ -278,6 +278,17 @@ export class OutletController extends Controller<
 				message
 			);
 		} catch (error) {
+			// Check if error is about duplicate assignment
+			if (error instanceof Error && error.message.includes('already assigned to outlet')) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'employee_id', message: error.message, type: 'conflict' }],
+					error.message,
+					400
+				);
+			}
+
 			// Check if error is about PRESENT attendance
 			if (error instanceof Error && error.message.includes('Cannot reassign')) {
 				return this.getFailureResponse(

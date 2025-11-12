@@ -112,7 +112,27 @@ export default class OutletService extends Service<TOutlet> {
     
     // Process each date
     for (const date of dates) {
-      // Check for existing assignment on this outlet for this date
+      // FIRST: Check if the new employee is already assigned to a DIFFERENT outlet on this date
+      const newEmployeeExistingAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
+      
+      if (newEmployeeExistingAssignment && newEmployeeExistingAssignment.outlet_id !== outletId) {
+        // Validation: Prevent duplicate assignment to different outlet on same day
+        // Only allow if previousStatus is provided (indicating intentional move/swap)
+        if (!previousStatus) {
+          throw new Error(
+            `Employee is already assigned to outlet "${newEmployeeExistingAssignment.outlet.name}" (ID: ${newEmployeeExistingAssignment.outlet_id}) on ${date.toISOString().split('T')[0]}. ` +
+            `Cannot assign to multiple outlets on the same day. To move the employee, provide previous_status parameter.`
+          );
+        }
+        
+        // Employee is assigned to another outlet with previous_status - delete that assignment
+        await this.repository.deleteAssignmentsByOutletAndDate(
+          newEmployeeExistingAssignment.outlet_id,
+          date
+        );
+      }
+      
+      // SECOND: Check for existing assignment on this outlet for this date
       const existingAssignment = await this.repository.findAssignmentByOutletAndDate(outletId, date);
       
       if (!existingAssignment) {

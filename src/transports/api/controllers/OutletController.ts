@@ -219,7 +219,7 @@ export class OutletController extends Controller<
 		try {
 			const outletId = parseInt(req.params.id);
 			const employeeId = parseInt(req.params.employeeid);
-			const { date, is_for_one_week } = req.body;
+			const { date, is_for_one_week, is_for_one_month, previous_status, notes } = req.body;
 
 			// Validate outlet exists
 			const outlet = await this.outletService.findById(outletId.toString());
@@ -245,26 +245,50 @@ export class OutletController extends Controller<
 				);
 			}
 
-			const assignments = await this.outletService.assignEmployeeToOutletForDates(
+			const result = await this.outletService.assignEmployeeToOutletForDates(
 				outletId,
 				employeeId,
 				new Date(date),
-				is_for_one_week
+				is_for_one_week || false,
+				is_for_one_month || false,
+				previous_status,
+				notes
 			);
 
-			const responseData: TOutletAssignmentGetResponse[] = assignments.map((assignment) =>
+			const responseData: TOutletAssignmentGetResponse[] = result.assignments.map((assignment) =>
 				OutletAssignmentResponseMapper.toListResponse(assignment)
 			);
+
+			const message = result.action === 'swap' 
+				? 'Employees swapped successfully'
+				: result.action === 'replace'
+				? 'Employee replaced and attendance created successfully'
+				: 'Employee assigned to outlet successfully';
 
 			return this.getSuccessResponse(
 				res,
 				{
 					data: responseData,
-					metadata: {} as TMetadataResponse,
+					metadata: {
+						total: responseData.length,
+						attendances_created: result.attendances.length,
+						action: result.action,
+					} as unknown as TMetadataResponse,
 				},
-				"Employee assigned to outlet successfully"
+				message
 			);
 		} catch (error) {
+			// Check if error is about PRESENT attendance
+			if (error instanceof Error && error.message.includes('Cannot reassign')) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'employee_id', message: error.message, type: 'conflict' }],
+					error.message,
+					400
+				);
+			}
+
 			return this.handleError(
 				res,
 				error,
@@ -391,6 +415,58 @@ export class OutletController extends Controller<
 				"Failed to retrieve outlet material stocks",
 				500,
 				[],
+				{} as TMetadataResponse
+			);
+		}
+	};
+
+	deleteSchedule = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const outletId = parseInt(req.params.outlet_id);
+			const date = new Date(req.params.date);
+
+			// Validate outlet exists
+			const outlet = await this.outletService.findById(outletId.toString());
+			if (!outlet) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'outlet_id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
+			}
+
+			const deletedCount = await this.outletService.deleteScheduleByOutletAndDate(
+				outletId,
+				date
+			);
+
+			if (deletedCount === 0) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'date', message: 'No schedule found for this date', type: 'not_found' }],
+					'No schedule found for this date',
+					404
+				);
+			}
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: { deleted_count: deletedCount } as unknown as TOutletGetResponse,
+					metadata: {} as TMetadataResponse,
+				},
+				`Successfully deleted ${deletedCount} schedule(s)`
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to delete schedule",
+				500,
+				{} as TOutletGetResponse,
 				{} as TMetadataResponse
 			);
 		}

@@ -10,17 +10,20 @@ import {
   getSchedulesSchema,
   updateLateApprovalStatusSchema,
 } from '../../validations/employee.validation';
+import { deleteScheduleSchema } from '../../validations/schedule-delete.validation';
 import { EmployeeController } from '../../controllers/EmployeeController';
 import EmployeeService from '../../../../core/services/EmployeeService';
 import EmployeeRepository from '../../../../adapters/postgres/repositories/EmployeeRepository';
 import { EmployeeResponseMapper } from '../../../../mappers/response-mappers/EmployeeResponseMapper';
 import { authMiddleware } from '../../../../policies/authMiddleware';
 import { storage, storageMultiple } from '../../../../policies/uploadImages';
+import { OutletController } from '../../controllers/OutletController';
 
 const router = express.Router();
 
 const employeeController = new EmployeeController();
 const employeeService = new EmployeeService(new EmployeeRepository());
+const outletController = new OutletController();
 
 // Upload middleware for attendance images
 const uploadAttendanceImage = storage('absent');
@@ -74,5 +77,12 @@ router.put('/:id',
   (req, res) => employeeController.updateEmployee(req, res, employeeService)
 );
 router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
+
+// Delete schedule by outlet_id and date
+router.delete(
+	"/schedule/:outlet_id/:date",
+	validate(deleteScheduleSchema),
+	outletController.deleteSchedule
+);
 
 export default router;

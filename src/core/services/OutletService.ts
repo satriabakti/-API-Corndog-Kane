@@ -81,31 +81,119 @@ export default class OutletService extends Service<TOutlet> {
     outletId: number,
     employeeId: number,
     startDate: Date,
-    isForOneWeek: boolean
-  ): Promise<TOutletAssignmentWithRelations[]> {
-    const assignments: { outletId: number; employeeId: number; assignedAt: Date }[] = [];
+    isForOneWeek: boolean,
+    isForOneMonth: boolean,
+    previousStatus?: string,
+    notes?: string
+  ): Promise<{ assignments: TOutletAssignmentWithRelations[]; attendances: any[]; action: string }> {
+    const { generateDateRange, getNextSaturday, getLastSaturdayOfMonth, normalizeToStartOfDay } = 
+      await import('../utils/dateHelper');
     
-    if (isForOneWeek) {
-      // Generate assignments for 7 days forward
-      for (let i = 0; i < 7; i++) {
-        const assignmentDate = new Date(startDate);
-        assignmentDate.setDate(startDate.getDate() + i);
-        assignments.push({
-          outletId,
-          employeeId,
-          assignedAt: assignmentDate,
-        });
-      }
+    // Determine end date based on flags
+    let endDate: Date;
+    
+    if (isForOneMonth) {
+      // End on last Saturday of the month
+      endDate = getLastSaturdayOfMonth(startDate);
+    } else if (isForOneWeek) {
+      // End on next Saturday
+      endDate = getNextSaturday(startDate);
     } else {
-      // Generate assignment for 1 day only
-      assignments.push({
-        outletId,
-        employeeId,
-        assignedAt: startDate,
-      });
+      // Single day
+      endDate = new Date(startDate);
     }
-
-    return await this.repository.bulkAssignEmployeeToOutlet(assignments);
+    
+    // Generate all dates in range
+    const dates = generateDateRange(normalizeToStartOfDay(startDate), normalizeToStartOfDay(endDate));
+    
+    const assignments: TOutletAssignmentWithRelations[] = [];
+    const attendances: any[] = [];
+    let actionType = 'simple_assignment';
+    
+    // Process each date
+    for (const date of dates) {
+      // Check for existing assignment on this outlet for this date
+      const existingAssignment = await this.repository.findAssignmentByOutletAndDate(outletId, date);
+      
+      if (!existingAssignment) {
+        // No conflict - simple assignment
+        const newAssignment = await this.repository.assignEmployeeToOutlet(outletId, employeeId, date);
+        assignments.push(newAssignment);
+        continue;
+      }
+      
+      // Conflict detected - check if employee already has PRESENT attendance
+      const presentAttendance = await this.repository.findAttendanceByEmployeeOutletDate(
+        existingAssignment.employee_id,
+        outletId,
+        date,
+        'PRESENT'
+      );
+      
+      if (presentAttendance) {
+        throw new Error(
+          `Cannot reassign: Employee ${existingAssignment.employee.name} has already checked in as PRESENT on ${date.toISOString().split('T')[0]}`
+        );
+      }
+      
+      // Apply scenario logic based on previous_status
+      if (previousStatus === 'PRESENT') {
+        // Scenario 2: SWAP employees
+        actionType = 'swap';
+        
+        // Find new employee's current assignment for this date
+        const newEmployeeAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
+        
+        if (newEmployeeAssignment) {
+          // Swap the two employees
+          const swapped = await this.repository.swapEmployeeAssignments(
+            existingAssignment.employee_id,
+            employeeId,
+            outletId,
+            newEmployeeAssignment.outlet_id,
+            date
+          );
+          assignments.push(...swapped);
+        } else {
+          // New employee has no assignment - just do simple replace
+          const result = await this.repository.replaceEmployeeWithAttendance(
+            existingAssignment.employee_id,
+            employeeId,
+            outletId,
+            date,
+            previousStatus as any,
+            notes
+          );
+          assignments.push(result.assignment);
+          attendances.push(result.attendance);
+          actionType = 'replace';
+        }
+      } else if (previousStatus) {
+        // Scenario 1 & 3: REPLACE with status (SICK, NOT_PRESENT, etc.)
+        actionType = 'replace';
+        
+        const result = await this.repository.replaceEmployeeWithAttendance(
+          existingAssignment.employee_id,
+          employeeId,
+          outletId,
+          date,
+          previousStatus as any,
+          notes
+        );
+        assignments.push(result.assignment);
+        attendances.push(result.attendance);
+      } else {
+        // No previous_status provided - simple replacement
+        const newAssignment = await this.repository.assignEmployeeToOutlet(outletId, employeeId, date);
+        assignments.push(newAssignment);
+      }
+    }
+    
+    return {
+      assignments,
+      attendances,
+      action: actionType,
+    };
   }
 
   async getOutletProductStocks(
@@ -162,5 +250,18 @@ export default class OutletService extends Service<TOutlet> {
         total_pages: totalPages,
       },
     };
+  }
+
+  /**
+   * Delete all employee assignments for a specific outlet on a specific date
+   * @param outletId - The outlet ID
+   * @param date - The date to delete assignments for
+   * @returns Number of deleted assignments
+   */
+  async deleteScheduleByOutletAndDate(
+    outletId: number,
+    date: Date
+  ): Promise<number> {
+    return this.repository.deleteAssignmentsByOutletAndDate(outletId, date);
   }
 }

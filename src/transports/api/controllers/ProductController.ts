@@ -76,7 +76,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
   }
   updateProduct = async (req: Request, res: Response) => {
     const productId = req.params.id;
-    const { name, description, price, category_id, is_active } = req.body;
+    const { name, description,hpp, price, category_id, is_active } = req.body;
     
     const imagePath = req.file ? req.file.filename : null;
 
@@ -102,6 +102,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         categoryId: category_id !== undefined ? parseInt(category_id, 10) : undefined,
         imagePath: imagePath !== null ? imagePath : existingProduct?.imagePath,
         isActive: is_active !== undefined ? Boolean(is_active) : undefined,
+        hpp: hpp !== undefined ? parseFloat(hpp) : undefined,
       } as LegacyProductInput);
 
       return this.getSuccessResponse(

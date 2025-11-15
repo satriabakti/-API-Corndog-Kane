@@ -438,8 +438,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
         product_requests: OutletProductRequestBatchResponseMapper(result.product_requests),
         material_requests: OutletMaterialRequestBatchResponseMapper(result.material_requests),
       };
-      console.log('Mapped detailed requests response', responseData);
-
+      // Debug logging removed for production
       this.getSuccessResponse(
         res,
         {

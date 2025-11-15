@@ -51,7 +51,7 @@ export function OutletMaterialRequestResponseMapper(
 export function OutletProductRequestBatchResponseMapper(
   entities: TOutletProductRequest[]
 ): TOutletProductRequestResponse[] {
-  return entities.map((entity) => OutletProductRequestResponseMapper(entity as TOutletProductRequest & { product?: { id: number; name: string; price: number,category_name:string } }));
+  return entities.map((entity) => OutletProductRequestResponseMapper(entity as TOutletProductRequest & { product?: { id: number; name: string; price: number, category_name: string } }));
 }
 
 /**

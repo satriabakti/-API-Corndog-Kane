@@ -402,7 +402,6 @@ export class OutletProductRequestRepository
 			createdAt: "desc",
 		},
     });
-    // console.log(dbRecords[0].product.product_master);
 
     // Map to entity using EntityMapper
     const { EntityMapper } = await import("../../../mappers/EntityMapper");

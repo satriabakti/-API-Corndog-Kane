@@ -1,6 +1,4 @@
-import { Repository } from "./Repository";
+import Repository  from "./Repository";
 import { TMasterProduct, TMasterProductWithID } from "../entities/product/masterProduct";
 
-export interface MasterProductRepository extends Repository<TMasterProduct | TMasterProductWithID> {
-  // Additional methods specific to MasterProduct if needed
-}
+export type MasterProductRepository = Repository<TMasterProduct | TMasterProductWithID>

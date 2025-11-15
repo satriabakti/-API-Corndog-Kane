@@ -390,10 +390,9 @@ export class OutletRequestService {
       if (outlet) {
         outletName = outlet.name;
         outletLocation = outlet.location;
-        employee_name= outlet.outlet_employee[0]?.employee?.name || "";
+        employee_name = outlet.outlet_employee[0]?.employee?.name || "";
       }
     }
-    console.log(productRequests,"aaa");
     return {
       outlet_id: outletId,
       outlet_name: outletName,

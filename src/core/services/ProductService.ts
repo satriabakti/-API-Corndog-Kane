@@ -74,7 +74,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       throw new Error(`Detailed product with ID ${data.product_id} not found`);
     }
 
-    // Create materials out based on product_inventories for the quantity
+    // Deduct materials based on product inventories for the quantity
     for (const material of detailedProduct.materials) {
       // Calculate the amount of material needed: requested quantity * material quantity per product
       const materialQuantity = data.quantity * material.quantity;

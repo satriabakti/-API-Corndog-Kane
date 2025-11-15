@@ -13,6 +13,19 @@ import { ProductDetailResponseMapper } from "../../../mappers/response-mappers/P
 
 import fs from "fs";
 import path from "path";
+import winston from "winston";
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    // Add file or other transports as needed
+  ],
+});
 
 // Legacy interface for product create/update to maintain API compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +62,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Product created successfully"
       );
     } catch (error) {
-      console.error("Error creating product:", error);
+      logger.error("Error creating product:", { error });
       return this.handleError(res,
       
         error,
@@ -75,7 +88,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           const oldImagePath = path.join(process.cwd(), 'public', 'products', existingProduct.imagePath);
           fs.unlink(oldImagePath, (err) => {
             if (err) {
-              console.error("Error deleting old image:", err);
+              logger.error("Error deleting old image:", { error: err });
             } else {
               console.log("Old image deleted successfully");
             }
@@ -100,7 +113,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Product updated successfully"
       );
     } catch (error) {
-      console.error("Error updating product:", error);
+      logger.error("Error updating product:", { error });
       return this.handleError(
         res,
         error,
@@ -138,7 +151,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Product deleted successfully"
       );
     } catch (error) {
-      console.error("Error deleting product:", error);
+      logger.error("Error deleting product:", { error });
       return this.handleError(
         res,
         error,
@@ -262,7 +275,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Product stock in added successfully"
       );
     } catch (error) {
-      console.error("Error adding product stock in:", error);
+      logger.error("Error adding product stock in:", { error });
       return this.handleError(
         res,
         error,
@@ -301,7 +314,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Product retrieved successfully"
       );
     } catch (error) {
-      console.error("Error getting detailed product:", error);
+      logger.error("Error getting detailed product:", { error });
       return this.handleError(
         res,
         error,

@@ -1,13 +1,19 @@
 import { Response } from 'express';
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TOrderGetResponse, TOrderCreateRequest, TOrderListResponse, TOrderDetailResponse, TMyOrderResponse } from "../../../core/entities/order/order";
+import { TOutletStockItem, TMaterialStockItem } from "../../../core/entities/outlet/outlet";
 import OrderService from '../../../core/services/OrderService';
 import OrderRepository from "../../../adapters/postgres/repositories/OrderRepository";
+import OutletService from '../../../core/services/OutletService';
+import OutletRepository from '../../../adapters/postgres/repositories/OutletRepository';
 import { OrderResponseMapper } from "../../../mappers/response-mappers/OrderResponseMapper";
+import { OutletProductStockResponseMapper } from "../../../mappers/response-mappers/OutletProductStockResponseMapper";
+import { OutletMaterialStockResponseMapper } from "../../../mappers/response-mappers/OutletMaterialStockResponseMapper";
 import Controller from "./Controller";
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
 import { getWebSocketInstance } from '../../websocket';
+import { PrismaClient } from '@prisma/client';
 
 // Union type for all possible order response types (including null for error cases)
 type TOrderResponseTypes = TOrderGetResponse | TOrderListResponse | TOrderDetailResponse | TMyOrderResponse | null;
@@ -17,10 +23,14 @@ type TOrderMetadata = TMetadataResponse | { page: number; limit: number; total: 
 
 export class OrderController extends Controller<TOrderResponseTypes, TOrderMetadata> {
   private orderService: OrderService;
+  private outletService: OutletService;
+  private prisma: PrismaClient;
 
   constructor() {
     super();
     this.orderService = new OrderService(new OrderRepository());
+    this.outletService = new OutletService(new OutletRepository());
+    this.prisma = new PrismaClient();
   }
 
   /**
@@ -305,6 +315,92 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         const io = getWebSocketInstance();
         io.emit('new-order', orderDetailForBroadcast);
         console.log(`📡 WebSocket: Broadcasted new order ${fullOrder.invoice_number}`);
+
+        // Extract unique product IDs from order items (from raw Prisma result)
+        const orderedProductIds = new Set<number>();
+        if (fullOrder && fullOrder.items) {
+          for (const item of fullOrder.items) {
+            orderedProductIds.add(item.product_id);
+          }
+        }
+
+        // Fetch and emit product stock update (only for ordered products, today only)
+        try {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Start of today
+          
+          const productStockResult = await this.outletService.getOutletProductStocks(
+            outletId,
+            1, // page
+            undefined, // no limit
+            today, // start date - today
+            today // end date - today
+          );
+          
+          // Filter to only include products that were ordered
+          const filteredProductStocks = productStockResult.data.filter((item: TOutletStockItem) => 
+            orderedProductIds.has(item.product_id)
+          );
+          
+          if (filteredProductStocks.length > 0) {
+            io.emit('new-product-stock', {
+              outlet_id: outletId,
+              data: filteredProductStocks.map((item: TOutletStockItem) => OutletProductStockResponseMapper.toListResponse(item)),
+            });
+            console.log(`📡 WebSocket: Broadcasted product stock update for ${filteredProductStocks.length} products in outlet ${outletId} (today only)`);
+          }
+        } catch (stockError) {
+          console.error('⚠️  WebSocket product stock emit failed:', stockError);
+        }
+
+        // For materials, we need to check which materials are used in the ordered products
+        try {
+          if (orderedProductIds.size > 0) {
+            // Get material dependencies for ordered products
+            const productInventories = await this.prisma.productInventory.findMany({
+              where: {
+                product_id: {
+                  in: Array.from(orderedProductIds),
+                },
+              },
+              select: {
+                material_id: true,
+              },
+            });
+
+            const orderedMaterialIds = new Set<number>(
+              productInventories.map((inv: { material_id: number }) => inv.material_id)
+            );
+
+            if (orderedMaterialIds.size > 0) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0); // Start of today
+              
+              const materialStockResult = await this.outletService.getOutletMaterialStocks(
+                outletId,
+                1, // page
+                undefined, // no limit
+                today, // start date - today
+                today // end date - today
+              );
+              
+              // Filter to only include materials used in ordered products
+              const filteredMaterialStocks = materialStockResult.data.filter((item: TMaterialStockItem) => 
+                orderedMaterialIds.has(item.material_id)
+              );
+              
+              if (filteredMaterialStocks.length > 0) {
+                io.emit('new-material-stock', {
+                  outlet_id: outletId,
+                  data: filteredMaterialStocks.map((item: TMaterialStockItem) => OutletMaterialStockResponseMapper.toListResponse(item)),
+                });
+                console.log(`📡 WebSocket: Broadcasted material stock update for ${filteredMaterialStocks.length} materials in outlet ${outletId} (today only)`);
+              }
+            }
+          }
+        } catch (stockError) {
+          console.error('⚠️  WebSocket material stock emit failed:', stockError);
+        }
       } catch (wsError) {
         console.error('⚠️  WebSocket emit failed:', wsError);
         // Don't fail the request if WebSocket fails

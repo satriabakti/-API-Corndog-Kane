@@ -8,6 +8,7 @@ import {
 	updateOutletSchema,
 } from "../../validations/outlet.validation";
 import { assignEmployeeToOutletSchema } from "../../validations/outlet-assignment.validation";
+import { outletSummarizeSchema } from "../../validations/outlet-summarize.validation";
 import { OutletController } from '../../controllers/OutletController';
 import OutletService from '../../../../core/services/OutletService';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
@@ -56,6 +57,13 @@ router.get(
 router.get(
 	"/:id/stocks/materials",
 	outletController.getOutletMaterialStocks
+);
+
+// Get outlet financial summary
+router.get(
+	"/:id/stocks/summarize",
+	validate(outletSummarizeSchema),
+	outletController.getSummarize
 );
 
 export default router;

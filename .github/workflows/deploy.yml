@@ -82,6 +82,9 @@ jobs:
             echo "Restarting application with PM2..."
             pm2 restart Corndog-Kane-API || pm2 start dist/index.js --name Corndog-Kane-API
             echo "Deployment and restart completed."
+            echo "Get top 10 logs..."
+            pm2 logs Corndog-Kane-API --lines 10
+            echo " Deployment process finished."
 
   sync-to-dev:
     needs: deploy

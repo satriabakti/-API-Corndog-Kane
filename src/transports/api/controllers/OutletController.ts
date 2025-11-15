@@ -483,4 +483,49 @@ export class OutletController extends Controller<
 		}
 	};
 
+	/**
+	 * Get financial summary for an outlet
+	 */
+	getSummarize = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const outletId = parseInt(req.params.id, 10);
+
+			if (isNaN(outletId)) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'id', message: 'Invalid outlet ID', type: 'invalid' }],
+					'Invalid outlet ID',
+					400
+				);
+			}
+
+			// Optional query parameters
+			const fromDate = req.query.start_date ? new Date(req.query.start_date as string) : undefined;
+			const toDate = req.query.end_date ? new Date(req.query.end_date as string) : undefined;
+			const status = req.query.status ? (req.query.status as string) : undefined;
+			
+
+			const summarize = await this.outletService.getOutletSummarize(outletId, fromDate, toDate, status);
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: summarize as unknown as TOutletGetResponse,
+					metadata: {} as TMetadataResponse,
+				},
+				'Successfully retrieved outlet summary'
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to get outlet summary",
+				500,
+				{} as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
+
 }

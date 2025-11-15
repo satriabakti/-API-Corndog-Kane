@@ -284,4 +284,26 @@ export default class OutletService extends Service<TOutlet> {
   ): Promise<number> {
     return this.repository.deleteAssignmentsByOutletAndDate(outletId, date);
   }
+
+  /**
+   * Get financial summary for outlet (income, expenses, profit, sold quantity)
+   * @param outletId - The outlet ID
+   * @param fromDate - Optional start date
+   * @param toDate - Optional end date
+   * @param status - Optional order status filter
+   */
+  async getOutletSummarize(
+    outletId: number,
+    fromDate?: Date,
+    toDate?: Date,
+    status?: string
+  ): Promise<{
+    outlet_id: number;
+    total_income: number;
+    total_expenses: number;
+    total_profit: number;
+    total_sold_quantity: number;
+  }> {
+    return this.repository.getOutletSummarize(outletId, fromDate, toDate, status);
+  }
 }

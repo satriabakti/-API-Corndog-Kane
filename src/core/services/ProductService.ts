@@ -2,12 +2,16 @@ import { TProduct, TProductWithID, TProductStockInventory, TProductStockInReques
 import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
 import { Service } from "./Service";
 import { PaginationResult, SearchConfig, FilterObject } from "../repositories/Repository";
+import MaterialService from "./MaterialService";
+import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
 
 export default class ProductService extends Service<TProduct | TProductWithID> {
   declare repository: ProductRepository;
+  private materialService: MaterialService;
 
   constructor(repository: ProductRepository) {
     super(repository);
+    this.materialService = new MaterialService(new MaterialRepository());
   }
 
   /**
@@ -62,6 +66,24 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     const product = await this.repository.getById(data.product_id.toString());
     if (!product) {
       throw new Error(`Product with ID ${data.product_id} not found`);
+    }
+
+    // Get the master product to access product_inventories (materials required)
+    const detailedProduct = await this.repository.getDetailedProduct(data.product_id);
+    if (!detailedProduct) {
+      throw new Error(`Detailed product with ID ${data.product_id} not found`);
+    }
+
+    // Create materials out based on product_inventories for the quantity
+    for (const material of detailedProduct.materials) {
+      // Calculate the amount of material needed: requested quantity * material quantity per product
+      const materialQuantity = data.quantity * material.quantity;
+      
+      // Create material out record
+      await this.materialService.stockOut({
+        material_id: material.id,
+        quantity: materialQuantity,
+      });
     }
 
     // Create stock in record with PRODUCTION source
@@ -196,6 +218,13 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     const total = data.length;
 
     return { data: paginatedData, total };
+  }
+
+  /**
+   * Get detailed product with materials relation
+   */
+  async getDetailedProduct(productId: number) {
+    return await this.repository.getDetailedProduct(productId);
   }
 }
 

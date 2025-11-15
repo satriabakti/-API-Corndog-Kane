@@ -59,4 +59,10 @@ router.delete(
   productController.deleteProduct
 );
 
+// GET detailed product with materials relation
+router.get(
+  "/:id/detail",
+  productController.getDetailedProduct
+);
+
 export default router;

@@ -10,6 +10,7 @@ export const ProductMapperEntity: EntityMapConfig = {
     { dbField: 'description', entityField: 'description', transform: (v) => MapperUtil.mapNullableString(v as string | null) },
     { dbField: 'image_path', entityField: 'imagePath' },
     { dbField: 'price', entityField: 'price' },
+    { dbField: 'hpp', entityField: 'hpp' },
     { dbField: 'is_active', entityField: 'isActive' },
     { dbField: 'createdAt', entityField: 'createdAt' },
     { dbField: 'updatedAt', entityField: 'updatedAt' },

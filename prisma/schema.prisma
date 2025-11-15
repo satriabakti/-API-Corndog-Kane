@@ -132,6 +132,7 @@ model Product {
   image_path  String?
   description String?
   price       Float
+  hpp         Float?                 @default(0)
   product_master_id  Int
   product_master ProductMaster @relation(fields: [product_master_id], references: [id])
   is_active   Boolean                @default(true)

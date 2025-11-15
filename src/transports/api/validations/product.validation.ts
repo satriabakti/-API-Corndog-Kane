@@ -12,6 +12,16 @@ export const createProductSchema = z.object({
         }
         return num;
       }),
+    hpp: z.string()
+      .optional()
+      .transform((val) => {
+        if (!val) return undefined;
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+          throw new Error('HPP must be a positive number');
+        }
+        return num;
+      }),
     category_id: z.string()
       .min(1, 'Category ID is required')
       .transform((val) => {
@@ -40,6 +50,16 @@ export const updateProductSchema = z.object({
         const num = Number(val);
         if (isNaN(num) || num < 0) {
           throw new Error('Price must be a positive number');
+        }
+        return num;
+      })
+    ]).optional(),
+    hpp: z.union([
+      z.number().min(0, 'HPP must be a positive number'),
+      z.string().transform((val) => {
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+          throw new Error('HPP must be a positive number');
         }
         return num;
       })

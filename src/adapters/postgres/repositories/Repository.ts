@@ -14,8 +14,9 @@ import { TMaterial, TMaterialWithID } from "../../../core/entities/material/mate
 import { TOutletProductRequest, TOutletMaterialRequest } from "../../../core/entities/outlet/request";
 import { TOrder } from "../../../core/entities/order/order";
 import { TProduct, TProductWithID } from "../../../core/entities/product/product";
+import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID | TMasterProduct| TMasterProductWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -37,7 +38,7 @@ interface PrismaDelegate<T> {
 }
 
 // Type for valid Prisma model names
-type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productStock" | "productStockDetail" | "productCategory" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut" | "outletProductRequest" | "outletMaterialRequest";
+type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productStock" | "productStockDetail" | "productCategory" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut" | "outletProductRequest" | "outletMaterialRequest"| "productMaster";
 
 // Field mapping configuration types
 export interface FieldMapping {

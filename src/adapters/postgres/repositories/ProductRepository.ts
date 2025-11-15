@@ -21,15 +21,29 @@ export class ProductRepository
 		// Extract the fields that should be in ProductMaster
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productCreate = item as any; // Type assertion for legacy interface compatibility
+
+		let masterProduct;
 		
-		// Create ProductMaster first
-		const masterProduct = await this.prisma.productMaster.create({
-			data: {
-				name: productCreate.name,
-				category_id: productCreate.categoryId,
-				is_active: true,
-			},
-		});
+		// Check if product_master_id is provided to link to existing master product
+		if (productCreate.product_master_id) {
+			// Use existing master product
+			masterProduct = await this.prisma.productMaster.findUnique({
+				where: { id: productCreate.product_master_id }
+			});
+			
+			if (!masterProduct) {
+				throw new Error(`Master product with ID ${productCreate.product_master_id} not found`);
+			}
+		} else {
+			// Create new ProductMaster
+			masterProduct = await this.prisma.productMaster.create({
+				data: {
+					name: productCreate.name,
+					category_id: productCreate.categoryId,
+					is_active: true,
+				},
+			});
+		}
 
 		// Then create Product linking to ProductMaster
 		const created = await this.prisma.product.create({
@@ -38,6 +52,7 @@ export class ProductRepository
 				description: productCreate.description,
 				image_path: productCreate.imagePath,
 				price: productCreate.price,
+				hpp: productCreate.hpp, // Add HPP field
 				is_active: item.isActive ?? true,
 			},
 			include: {
@@ -88,6 +103,7 @@ export class ProductRepository
 				...(productUpdate.description !== undefined && { description: productUpdate.description }),
 				...(productUpdate.imagePath !== undefined && { image_path: productUpdate.imagePath }),
 				...(productUpdate.price !== undefined && { price: productUpdate.price }),
+				...(productUpdate.hpp !== undefined && { hpp: productUpdate.hpp }), // Add HPP field
 				...(productUpdate.isActive !== undefined && { is_active: productUpdate.isActive }),
 			},
 			include: {
@@ -340,5 +356,58 @@ async getProductStockByOutlet(productId: number, outletId: number, date: Date): 
 	const remainingStock = totalStockIn - totalSold;
 
 	return remainingStock;
+}
+
+/**
+ * Get detailed product with materials relation
+ */
+async getDetailedProduct(productId: number) {
+	const product = await this.prisma.product.findUnique({
+		where: { id: productId },
+		include: {
+			product_master: {
+				include: {
+					category: true,
+					inventories: {
+						include: {
+							material: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!product) return null;
+
+	// Map to entity format
+	return {
+		id: product.id,
+		name: product.product_master.name,
+		image_path: product.image_path,
+		description: product.description,
+		price: product.price,
+		hpp: product.hpp, // Include HPP field
+		category_id: product.product_master.category_id,
+		category: product.product_master.category ? {
+			id: product.product_master.category.id,
+			name: product.product_master.category.name,
+			is_active: product.product_master.category.is_active,
+			created_at: product.product_master.category.createdAt,
+			updated_at: product.product_master.category.updatedAt,
+		} : null,
+		is_active: product.is_active,
+		created_at: product.createdAt,
+		updated_at: product.updatedAt,
+		materials: product.product_master.inventories.map(inventory => ({
+			id: inventory.material.id,
+			name: inventory.material.name,
+			suplier_id: inventory.material.suplier_id,
+			is_active: inventory.material.is_active,
+			created_at: inventory.material.createdAt.toISOString(),
+			updated_at: inventory.material.updatedAt.toISOString(),
+			quantity: inventory.quantity
+		}))
+	};
 }
 }

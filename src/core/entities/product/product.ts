@@ -5,6 +5,7 @@ export type TProduct = {
   imagePath?: string | null;
   description?: string | null;
   price: number;
+  hpp?: number; // Harga Pokok Penjualan (Cost of Goods Sold)
   name: string;
   categoryId?: number;
   category?: {
@@ -35,6 +36,7 @@ export type TProductCreateRequest = Omit<TProductCreate, "isActive" | "imagePath
 export type TProductUpdateRequest = Omit<TProductCreateRequest, "name" | "price" | "categoryId"> & {
   name?: string;
   price?: number;
+  hpp?: number;
   category_id?: number;
 };
 export type TProductGetResponse = {
@@ -43,6 +45,7 @@ export type TProductGetResponse = {
   image_path?: string | null;
   description?: string | null;
   price: number;
+  hpp?: number; // Harga Pokok Penjualan (Cost of Goods Sold)
   category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'>  | null;
   is_active: boolean;
   stock?: number;
@@ -128,6 +131,31 @@ export type TProductInventoryGetResponse = {
   updated_at: Date;
   out_times: string;
   in_times: string;
+}
+
+/**
+ * Detailed product response with materials relation
+ */
+export type TProductDetailGetResponse = {
+  id: number;
+  name: string;
+  image_path?: string | null;
+  description?: string | null;
+  price: number;
+  category_id: number;
+  category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'> | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  materials: Array<{
+    id: number;
+    name: string;
+    suplier_id: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    quantity: number;
+  }>;
 }
 
 /**

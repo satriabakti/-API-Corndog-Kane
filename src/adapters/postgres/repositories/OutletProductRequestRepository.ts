@@ -367,36 +367,42 @@ export class OutletProductRequestRepository
     endOfDay.setHours(23, 59, 59, 999);
 
     const dbRecords = await this.prisma.outletProductRequest.findMany({
-      where: {
-        outlet_id: outletId,
-        is_active: true,
-        createdAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        product: {
-          include: {
-            product_master: {
-              select: {
-                name: true,
+		where: {
+			outlet_id: outletId,
+			is_active: true,
+			createdAt: {
+				gte: startOfDay,
+				lte: endOfDay,
+			},
+		},
+		include: {
+      product: {
+      
+				include: {
+					product_master: {
+						select: {
+							name: true,
+							category: {
+								select: {name: true},
               },
-            },
-          },
-        },
-        outlet: {
-          select: {
-            id: true,
-            name: true,
-            location: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+              
+						},
+					},
+				},
+			},
+			outlet: {
+				select: {
+					id: true,
+					name: true,
+					location: true,
+				},
+			},
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
     });
+    // console.log(dbRecords[0].product.product_master);
 
     // Map to entity using EntityMapper
     const { EntityMapper } = await import("../../../mappers/EntityMapper");

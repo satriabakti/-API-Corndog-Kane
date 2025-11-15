@@ -21,13 +21,7 @@ export function OutletProductRequestResponseMapper(
     is_active: entity.isActive,
     created_at: entity.createdAt.toISOString(),
     updated_at: entity.updatedAt.toISOString(),
-    product: entity.product
-      ? {
-          ...entity.product,
-          category_name: (entity as any).product?.category?.name ?? null,
-        }
-      : undefined,
-    employee_name: (entity as any).outlet?.outlet_employee?.[0]?.employee?.name ?? null,
+    product: entity.product,
   };
 }
 
@@ -48,8 +42,6 @@ export function OutletMaterialRequestResponseMapper(
     created_at: entity.createdAt.toISOString(),
     updated_at: entity.updatedAt.toISOString(),
     material: entity.material,
-    employee_name: (entity as any).outlet?.outlet_employee?.[0]?.employee?.name ?? null,
-    category_name: (entity as any).material?.category?.name ?? null,
   };
 }
 
@@ -59,7 +51,7 @@ export function OutletMaterialRequestResponseMapper(
 export function OutletProductRequestBatchResponseMapper(
   entities: TOutletProductRequest[]
 ): TOutletProductRequestResponse[] {
-  return entities.map((entity) => OutletProductRequestResponseMapper(entity as TOutletProductRequest & { product?: { id: number; name: string; price: number } }));
+  return entities.map((entity) => OutletProductRequestResponseMapper(entity as TOutletProductRequest & { product?: { id: number; name: string; price: number,category_name:string } }));
 }
 
 /**

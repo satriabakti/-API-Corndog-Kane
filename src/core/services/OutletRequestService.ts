@@ -357,6 +357,7 @@ export class OutletRequestService {
     outlet_name: string;
     outlet_location: string;
     request_date: string;
+    employee_name: string;
     product_requests: TOutletProductRequest[];
     material_requests: TOutletMaterialRequest[];
   }> {
@@ -370,6 +371,7 @@ export class OutletRequestService {
     // So we need to get the raw data. For now, let's just return empty strings if no data
     let outletName = "Unknown Outlet";
     let outletLocation = "";
+    let employee_name = "";
 
     // If we have requests, we can fetch outlet separately
     if (productRequests.length > 0 || materialRequests.length > 0) {
@@ -381,20 +383,23 @@ export class OutletRequestService {
           id: true,
           name: true,
           location: true,
+          outlet_employee: { select: { employee: { select: { name: true } } } },
         },
       });
 
       if (outlet) {
         outletName = outlet.name;
         outletLocation = outlet.location;
+        employee_name= outlet.outlet_employee[0]?.employee?.name || "";
       }
     }
-
+    console.log(productRequests,"aaa");
     return {
       outlet_id: outletId,
       outlet_name: outletName,
       outlet_location: outletLocation,
       request_date: date,
+      employee_name: employee_name,
       product_requests: productRequests,
       material_requests: materialRequests,
     };

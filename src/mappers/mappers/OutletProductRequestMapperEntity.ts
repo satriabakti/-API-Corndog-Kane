@@ -21,10 +21,17 @@ export const OutletProductRequestMapperEntity: EntityMapConfig = {
       entityField: "product",
       mapper: (rel) => {
         if (!rel) return null;
-        const product = rel as { id: number; name: string; price: number };
+        const product = rel as {
+          id: number; name: string; price: number, product_master?: {
+            id: number;
+            name: string;
+            category?: { name: string }
+          }
+        };
         return {
           id: product.id,
-          name: product.name,
+          name: product.product_master ? product.product_master.name : '',
+          category_name: product.product_master?.category?.name ?? null,
           price: product.price,
         };
       },

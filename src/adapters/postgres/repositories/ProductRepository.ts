@@ -181,6 +181,7 @@ export class ProductRepository
 			data: {
 				product_id: data.productId,
 				quantity: data.quantity,
+				units: data.quantityUnit,
 				detail: {
 					update: {
 						price: data.price,

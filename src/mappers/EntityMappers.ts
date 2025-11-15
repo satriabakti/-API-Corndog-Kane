@@ -12,22 +12,23 @@ import { MaterialMapperEntity } from "./mappers/MaterialMapperEntity";
 import { OutletProductRequestMapperEntity } from "./mappers/OutletProductRequestMapperEntity";
 import { OutletMaterialRequestMapperEntity } from "./mappers/OutletMaterialRequestMapperEntity";
 import { OrderMapperEntity } from "./mappers/OrderMapperEntity";
+import { ProductMasterMapperEntity } from "./mappers/ProductMasterEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
-  order: OrderMapperEntity,
-  material: MaterialMapperEntity,
-  user: UserMapperEntity,
-  role: RoleMapperEntity,
-  outlet: OutletMapperEntity,
-  login: LoginMapperEntity,
-  product: ProductMapperEntity,
-  employee: EmployeeMapperEntity,
-  outletEmployee: OutletAssignmentMapperEntity,
-  productCategory: ProductCategoryMapperEntity,
-  supplier: SupplierMapperEntity,
-  outletProductRequest: OutletProductRequestMapperEntity,
-  outletMaterialRequest: OutletMaterialRequestMapperEntity,
-  productMaster: ProductMapperEntity,
+	order: OrderMapperEntity,
+	material: MaterialMapperEntity,
+	user: UserMapperEntity,
+	role: RoleMapperEntity,
+	outlet: OutletMapperEntity,
+	login: LoginMapperEntity,
+	product: ProductMapperEntity,
+	employee: EmployeeMapperEntity,
+	outletEmployee: OutletAssignmentMapperEntity,
+	productCategory: ProductCategoryMapperEntity,
+	supplier: SupplierMapperEntity,
+	outletProductRequest: OutletProductRequestMapperEntity,
+	outletMaterialRequest: OutletMaterialRequestMapperEntity,
+	productMaster: ProductMasterMapperEntity,
 };
 
 /**

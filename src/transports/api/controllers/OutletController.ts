@@ -45,10 +45,14 @@ export class OutletController extends Controller<
 	 */
 	getAllOutlets = async (req: Request, res: Response): Promise<Response> => {
 		try {
-			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-			const {search_key,search_value}	= req.query;
-			const result = await this.outletService.findAll(page, limit,[
+			const page = req.query.page
+				? parseInt(req.query.page as string, 10)
+				: 1;
+			const limit = req.query.limit
+				? parseInt(req.query.limit as string, 10)
+				: undefined;
+			const { search_key, search_value } = req.query;
+			const result = await this.outletService.findAll(page, limit, [
 				{
 					field: search_key as string,
 					value: search_value as string,
@@ -58,8 +62,14 @@ export class OutletController extends Controller<
 			// Fetch pic_name for each outlet
 			const dataWithPicName = await Promise.all(
 				result.data.map(async (outlet) => {
-					const picName = await this.outletRepository.getLatestEmployeeName(parseInt(outlet.id));
-					return OutletResponseMapper.toListResponse(outlet, picName);
+					const picName =
+						await this.outletRepository.getLatestEmployeeName(
+							parseInt(outlet.id)
+						);
+					return OutletResponseMapper.toListResponse(
+						outlet,
+						picName
+					);
 				})
 			);
 
@@ -99,20 +109,34 @@ export class OutletController extends Controller<
 		if (!outlet) {
 			return this.getFailureResponse(
 				res,
-				{ data: {} as TOutletGetResponseWithSettings, metadata: {} as TMetadataResponse },
-				[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-				'Outlet not found',
+				{
+					data: {} as TOutletGetResponseWithSettings,
+					metadata: {} as TMetadataResponse,
+				},
+				[
+					{
+						field: "id",
+						message: "Outlet not found",
+						type: "not_found",
+					},
+				],
+				"Outlet not found",
 				404
 			);
 		}
 
 		// Fetch pic_name from latest active employee
-		const picName = await this.outletRepository.getLatestEmployeeName(parseInt(id));
+		const picName = await this.outletRepository.getLatestEmployeeName(
+			parseInt(id)
+		);
 
 		return this.getSuccessResponse(
 			res,
 			{
-				data: OutletResponseMapper.toDetailResponse(outlet, picName),
+				data: OutletResponseMapper.toDetailResponse(
+					outlet,
+					picName
+				),
 				metadata: {} as TMetadataResponse,
 			},
 			"Outlet retrieved successfully"
@@ -130,7 +154,7 @@ export class OutletController extends Controller<
 				description: outletData.description,
 				isActive: outletData.is_active,
 				incomeTarget: outletData.income_target,
-				settings: outletData.setting.map(s => ({
+				settings: outletData.setting.map((s) => ({
 					checkin_time: s.checkin_time,
 					checkout_time: s.checkout_time,
 					salary: s.salary,
@@ -158,112 +182,162 @@ export class OutletController extends Controller<
 			);
 		}
 	};
-  updateOutlet = async (req: Request, res: Response): Promise<Response> => {
-    try {
-      const { id } = req.params;
-      const outletData = req.body as TOutletUpdateRequest;
-      
-      const updatePayload: Partial<TOutletUpdate> = {
-        name: outletData.name,
-        location: outletData.location,
-        code: outletData.code,
-        description: outletData.description,
-        isActive: outletData.is_active,
-        incomeTarget: outletData.income_target,
-        userId: outletData.user_id,
-      };
-      
-      if (outletData.setting) {
-        updatePayload.settings = outletData.setting.map(s => ({
-          id: s.id,
-          checkin_time: s.checkin_time,
-          checkout_time: s.checkout_time,
-          salary: s.salary,
-          days: s.days,
-        }));
-      }
-      
-      const updatedOutlet = (await this.outletService.updateOutlet(+id, updatePayload)) as TOutletWithSettings;
-      
-      if (!updatedOutlet) {
-        return this.getFailureResponse(
-          res,
-          { data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-          [{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-          'Outlet not found',
-          404
-        );
-      }
-      
-      return this.getSuccessResponse(
-        res,
-        {
-          data: OutletResponseMapper.toDetailResponse(updatedOutlet),
-          metadata: {} as TMetadataResponse,
-        },
-        'Outlet updated successfully'
-      );
-    } catch (error) {
-      return this.handleError(
-        res,
-        error,
-        'Failed to update outlet',
-        500,
-        {} as TOutletGetResponse,
-        {} as TMetadataResponse
-      );
-    }
-  };
+	updateOutlet = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const { id } = req.params;
+			const outletData = req.body as TOutletUpdateRequest;
 
-	assignEmployeeToOutlet = async (req: Request, res: Response): Promise<Response> => {
+			const updatePayload: Partial<TOutletUpdate> = {
+				name: outletData.name,
+				location: outletData.location,
+				code: outletData.code,
+				description: outletData.description,
+				isActive: outletData.is_active,
+				incomeTarget: outletData.income_target,
+				userId: outletData.user_id,
+			};
+
+			if (outletData.setting) {
+				updatePayload.settings = outletData.setting.map((s) => ({
+					id: s.id,
+					checkin_time: s.checkin_time,
+					checkout_time: s.checkout_time,
+					salary: s.salary,
+					days: s.days,
+				}));
+			}
+
+			const updatedOutlet = (await this.outletService.updateOutlet(
+				+id,
+				updatePayload
+			)) as TOutletWithSettings;
+
+			if (!updatedOutlet) {
+				return this.getFailureResponse(
+					res,
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "id",
+							message: "Outlet not found",
+							type: "not_found",
+						},
+					],
+					"Outlet not found",
+					404
+				);
+			}
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: OutletResponseMapper.toDetailResponse(
+						updatedOutlet
+					),
+					metadata: {} as TMetadataResponse,
+				},
+				"Outlet updated successfully"
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to update outlet",
+				500,
+				{} as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
+
+	assignEmployeeToOutlet = async (
+		req: Request,
+		res: Response
+	): Promise<Response> => {
 		try {
 			const outletId = parseInt(req.params.id);
 			const employeeId = parseInt(req.params.employeeid);
-			const { date, is_for_one_week, is_for_one_month, previous_status, notes } = req.body;
+			const {
+				date,
+				is_for_one_week,
+				is_for_one_month,
+				previous_status,
+				notes,
+			} = req.body;
 
 			// Validate outlet exists
-			const outlet = await this.outletService.findById(outletId.toString());
+			const outlet = await this.outletService.findById(
+				outletId.toString()
+			);
 			if (!outlet) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-					'Outlet not found',
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "id",
+							message: "Outlet not found",
+							type: "not_found",
+						},
+					],
+					"Outlet not found",
 					404
 				);
 			}
 
 			// Validate employee exists
-			const employee = await this.employeeService.findById(employeeId.toString());
+			const employee = await this.employeeService.findById(
+				employeeId.toString()
+			);
 			if (!employee) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'employeeid', message: 'Employee not found', type: 'not_found' }],
-					'Employee not found',
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "employeeid",
+							message: "Employee not found",
+							type: "not_found",
+						},
+					],
+					"Employee not found",
 					404
 				);
 			}
 
-			const result = await this.outletService.assignEmployeeToOutletForDates(
-				outletId,
-				employeeId,
-				new Date(date),
-				is_for_one_week || false,
-				is_for_one_month || false,
-				previous_status,
-				notes
-			);
+			const result =
+				await this.outletService.assignEmployeeToOutletForDates(
+					outletId,
+					employeeId,
+					new Date(date),
+					is_for_one_week || false,
+					is_for_one_month || false,
+					previous_status,
+					notes
+				);
 
-			const responseData: TOutletAssignmentGetResponse[] = result.assignments.map((assignment) =>
-				OutletAssignmentResponseMapper.toListResponse(assignment)
-			);
+			const responseData: TOutletAssignmentGetResponse[] =
+				result.assignments.map((assignment) =>
+					OutletAssignmentResponseMapper.toListResponse(
+						assignment
+					)
+				);
 
-			const message = result.action === 'swap' 
-				? 'Employees swapped successfully'
-				: result.action === 'replace'
-				? 'Employee replaced and attendance created successfully'
-				: 'Employee assigned to outlet successfully';
+			const message =
+				result.action === "swap"
+					? "Employees swapped successfully"
+					: result.action === "replace"
+					? "Employee replaced and attendance created successfully"
+					: "Employee assigned to outlet successfully";
 
 			return this.getSuccessResponse(
 				res,
@@ -279,22 +353,46 @@ export class OutletController extends Controller<
 			);
 		} catch (error) {
 			// Check if error is about duplicate assignment
-			if (error instanceof Error && error.message.includes('already assigned to outlet')) {
+			if (
+				error instanceof Error &&
+				error.message.includes("already assigned to outlet")
+			) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'employee_id', message: error.message, type: 'conflict' }],
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "employee_id",
+							message: error.message,
+							type: "conflict",
+						},
+					],
 					error.message,
 					400
 				);
 			}
 
 			// Check if error is about PRESENT attendance
-			if (error instanceof Error && error.message.includes('Cannot reassign')) {
+			if (
+				error instanceof Error &&
+				error.message.includes("Cannot reassign")
+			) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'employee_id', message: error.message, type: 'conflict' }],
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "employee_id",
+							message: error.message,
+							type: "conflict",
+						},
+					],
 					error.message,
 					400
 				);
@@ -314,12 +412,19 @@ export class OutletController extends Controller<
 	/**
 	 * Get outlet product stock movements with pagination
 	 */
-	getOutletProductStocks = async (req: Request, res: Response): Promise<Response> => {
+	getOutletProductStocks = async (
+		req: Request,
+		res: Response
+	): Promise<Response> => {
 		try {
 			const { id } = req.params;
-			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-			
+			const page = req.query.page
+				? parseInt(req.query.page as string, 10)
+				: 1;
+			const limit = req.query.limit
+				? parseInt(req.query.limit as string, 10)
+				: undefined;
+
 			// Optional date filters
 			let startDate: Date | undefined;
 			let endDate: Date | undefined;
@@ -337,8 +442,14 @@ export class OutletController extends Controller<
 				return this.getFailureResponse(
 					res,
 					{ data: [], metadata: {} as TMetadataResponse },
-					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-					'Outlet not found',
+					[
+						{
+							field: "id",
+							message: "Outlet not found",
+							type: "not_found",
+						},
+					],
+					"Outlet not found",
 					404
 				);
 			}
@@ -354,7 +465,11 @@ export class OutletController extends Controller<
 			return this.getSuccessResponse(
 				res,
 				{
-					data: result.data.map(item => OutletProductStockResponseMapper.toListResponse(item)),
+					data: result.data.map((item) =>
+						OutletProductStockResponseMapper.toListResponse(
+							item
+						)
+					),
 					metadata: result.metadata,
 				},
 				"Outlet product stocks retrieved successfully"
@@ -374,12 +489,19 @@ export class OutletController extends Controller<
 	/**
 	 * Get outlet material stock movements with pagination
 	 */
-	getOutletMaterialStocks = async (req: Request, res: Response): Promise<Response> => {
+	getOutletMaterialStocks = async (
+		req: Request,
+		res: Response
+	): Promise<Response> => {
 		try {
 			const { id } = req.params;
-			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-			
+			const page = req.query.page
+				? parseInt(req.query.page as string, 10)
+				: 1;
+			const limit = req.query.limit
+				? parseInt(req.query.limit as string, 10)
+				: undefined;
+
 			// Optional date filters
 			let startDate: Date | undefined;
 			let endDate: Date | undefined;
@@ -397,8 +519,14 @@ export class OutletController extends Controller<
 				return this.getFailureResponse(
 					res,
 					{ data: [], metadata: {} as TMetadataResponse },
-					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-					'Outlet not found',
+					[
+						{
+							field: "id",
+							message: "Outlet not found",
+							type: "not_found",
+						},
+					],
+					"Outlet not found",
 					404
 				);
 			}
@@ -414,7 +542,11 @@ export class OutletController extends Controller<
 			return this.getSuccessResponse(
 				res,
 				{
-					data: result.data.map(item => OutletMaterialStockResponseMapper.toListResponse(item)),
+					data: result.data.map((item) =>
+						OutletMaterialStockResponseMapper.toListResponse(
+							item
+						)
+					),
 					metadata: result.metadata,
 				},
 				"Outlet material stocks retrieved successfully"
@@ -431,34 +563,58 @@ export class OutletController extends Controller<
 		}
 	};
 
-	deleteSchedule = async (req: Request, res: Response): Promise<Response> => {
+	deleteSchedule = async (
+		req: Request,
+		res: Response
+	): Promise<Response> => {
 		try {
 			const outletId = parseInt(req.params.outlet_id);
 			const date = new Date(req.params.date);
 
 			// Validate outlet exists
-			const outlet = await this.outletService.findById(outletId.toString());
+			const outlet = await this.outletService.findById(
+				outletId.toString()
+			);
 			if (!outlet) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'outlet_id', message: 'Outlet not found', type: 'not_found' }],
-					'Outlet not found',
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "outlet_id",
+							message: "Outlet not found",
+							type: "not_found",
+						},
+					],
+					"Outlet not found",
 					404
 				);
 			}
 
-			const deletedCount = await this.outletService.deleteScheduleByOutletAndDate(
-				outletId,
-				date
-			);
+			const deletedCount =
+				await this.outletService.deleteScheduleByOutletAndDate(
+					outletId,
+					date
+				);
 
 			if (deletedCount === 0) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'date', message: 'No schedule found for this date', type: 'not_found' }],
-					'No schedule found for this date',
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "date",
+							message: "No schedule found for this date",
+							type: "not_found",
+						},
+					],
+					"No schedule found for this date",
 					404
 				);
 			}
@@ -466,7 +622,9 @@ export class OutletController extends Controller<
 			return this.getSuccessResponse(
 				res,
 				{
-					data: { deleted_count: deletedCount } as unknown as TOutletGetResponse,
+					data: {
+						deleted_count: deletedCount,
+					} as unknown as TOutletGetResponse,
 					metadata: {} as TMetadataResponse,
 				},
 				`Successfully deleted ${deletedCount} schedule(s)`
@@ -493,20 +651,39 @@ export class OutletController extends Controller<
 			if (isNaN(outletId)) {
 				return this.getFailureResponse(
 					res,
-					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'id', message: 'Invalid outlet ID', type: 'invalid' }],
-					'Invalid outlet ID',
+					{
+						data: {} as TOutletGetResponse,
+						metadata: {} as TMetadataResponse,
+					},
+					[
+						{
+							field: "id",
+							message: "Invalid outlet ID",
+							type: "invalid",
+						},
+					],
+					"Invalid outlet ID",
 					400
 				);
 			}
 
 			// Optional query parameters
-			const fromDate = req.query.start_date ? new Date(req.query.start_date as string) : undefined;
-			const toDate = req.query.end_date ? new Date(req.query.end_date as string) : undefined;
-			const status = req.query.status ? (req.query.status as string) : undefined;
-			
+			const fromDate = req.query.start_date
+				? new Date(req.query.start_date as string)
+				: undefined;
+			const toDate = req.query.end_date
+				? new Date(req.query.end_date as string)
+				: undefined;
+			const status = req.query.status
+				? (req.query.status as string)
+				: undefined;
 
-			const summarize = await this.outletService.getOutletSummarize(outletId, fromDate, toDate, status);
+			const summarize = await this.outletService.getOutletSummarize(
+				outletId,
+				fromDate,
+				toDate,
+				status
+			);
 
 			return this.getSuccessResponse(
 				res,
@@ -514,7 +691,7 @@ export class OutletController extends Controller<
 					data: summarize as unknown as TOutletGetResponse,
 					metadata: {} as TMetadataResponse,
 				},
-				'Successfully retrieved outlet summary'
+				"Successfully retrieved outlet summary"
 			);
 		} catch (error) {
 			return this.handleError(
@@ -527,5 +704,4 @@ export class OutletController extends Controller<
 			);
 		}
 	};
-
 }

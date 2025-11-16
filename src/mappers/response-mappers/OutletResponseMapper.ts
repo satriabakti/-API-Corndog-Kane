@@ -12,17 +12,19 @@ export class OutletResponseMapper {
    * Used in findAll endpoints
    */
   static toListResponse(outlet: TOutlet, picName: string | null = null): TOutletGetResponse {
+    console.log(outlet)
     return {
-      id: outlet.id,
-      name: outlet.name,
-      location: outlet.location,
-      code: outlet.code,
-      pic_name: picName,
-      description: outlet.description,
-      is_active: outlet.isActive,
-      incomeTarget: outlet.incomeTarget,
-      created_at: outlet.createdAt,
-      updated_at: outlet.updatedAt,
+		id: outlet.id,
+		name: outlet.name,
+		location: outlet.location,
+		code: outlet.code,
+		pic_name: picName,
+		description: outlet.description,
+		is_active: outlet.isActive,
+		incomeTarget: outlet.incomeTarget,
+		settings: outlet.setting || [],
+		created_at: outlet.createdAt,
+		updated_at: outlet.updatedAt,
     };
   }
 

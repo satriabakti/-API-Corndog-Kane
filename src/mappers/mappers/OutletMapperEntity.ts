@@ -46,6 +46,25 @@ export const OutletMapperEntity: EntityMapConfig = {
           updatedAt: user.updatedAt,
         };
       },
+    },
+    {
+      dbField: "settings",
+      entityField: "setting", 
+      isArray: true,
+      include:true,
+      
+      mapper: (rel) => {
+        const settings = rel as {
+          check_in_time: string,
+          check_out_time: string,
+          day: string[]
+        }
+        return {
+          checkin_time: settings.check_in_time,
+          checkout_time:settings.check_out_time, 
+          days:settings.day
+        }
+      }
     }
   ],
 };

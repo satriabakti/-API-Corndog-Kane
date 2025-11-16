@@ -19,16 +19,21 @@ export type TOutletSettingEntity = {
 };
 
 export type TOutlet = {
-  id: string;
-  name: string;
-  location: string;
-  code: string;
-  description: string;
-  isActive: boolean;
-  incomeTarget: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+	id: string;
+	name: string;
+	location: string;
+	code: string;
+	description: string;
+	isActive: boolean;
+	setting?: {
+		checkin_time: string;
+    checkout_time: string;
+		days: string[];
+	}[];
+	incomeTarget: number;
+	createdAt: Date;
+	updatedAt: Date;
+};
 export type TOutletCreate = Omit<TOutlet, "id" | "createdAt" | "updatedAt"> & {
 	settings: TOutletSetting[];
 	userId?: number;
@@ -49,7 +54,7 @@ export type TOutletWithSettings = TOutlet & {
 
 export type TOutletCreateRequest = Omit<
 	TOutlet,
-	"id" | "createdAt" | "updatedAt" | "isActive" | "code" | "incomeTarget"
+	"id" | "createdAt" | "updatedAt" |"setting"| "isActive" | "code" | "incomeTarget"
 > & {
 	is_active: boolean;
 	code: string;
@@ -70,11 +75,12 @@ export type TOutletGetResponse = Omit<TOutlet, 'isActive' | 'createdAt' | 'updat
   is_active: boolean; 
   code: string;
   pic_name: string | null;
+  settings: {checkin_time:string,checkout_time:string,days:string[]}[]
   created_at: Date;
   updated_at: Date;
 }
 
-export type TOutletGetResponseWithSettings = Omit<TOutlet, 'isActive' | 'createdAt' | 'updatedAt' | 'code' | 'incomeTarget'> & {
+export type TOutletGetResponseWithSettings = Omit<TOutlet, 'setting'|'isActive' | 'createdAt' | 'updatedAt' | 'code' | 'incomeTarget'> & {
   setting: {
     checkin_time: string;
     checkout_time: string;

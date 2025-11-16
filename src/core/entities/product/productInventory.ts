@@ -3,7 +3,8 @@ import { TMaterialGetResponse } from "../material/material";
 export type TProductInventory = {
   id: number;
   quantity: number;
-  materials: TMaterialGetResponse[];
+	material: TMaterialGetResponse[];
+	unit_quantity: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -33,6 +34,7 @@ export type TProductInventoryUpdateRequest = {
 
 export type TProductInventoryGetResponse = {
   id: number;
-  quantity: number;
+	quantity: number;
+	unit_quantity: string;
   material: TMaterialGetResponse[];
 };

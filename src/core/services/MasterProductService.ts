@@ -76,7 +76,8 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     return {
       id: productId!,
       quantity: data.quantity,
-      materials: (await Promise.all(materialsCreaated)).map((m:any) => (m.materials))as any[],
+      unit_quantity: data.unit,
+      material: (await Promise.all(materialsCreaated)).map((m:any) => (m.materials))as any[],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

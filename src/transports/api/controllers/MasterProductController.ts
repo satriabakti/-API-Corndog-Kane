@@ -49,7 +49,7 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
     try {
       const masterProductId = parseInt(req.params.id, 10);
       const inventories = await this.masterProductService.getProductInventory(masterProductId);
-
+      console.log('inven',inventories)
       const mappedResults: TProductInventoryGetResponse[] = inventories.map(item =>
         ProductInventoryResponseMapper.toResponse(item)
       );

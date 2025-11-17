@@ -185,7 +185,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    */
   async createOrder(req: AuthRequest, res: Response) {
     try {
-      const { payment_method, items } = req.body as TOrderCreateRequest;
+      const { payment_method, is_using_bag, packaging_type, items } = req.body as TOrderCreateRequest;
       const outletId = req.user?.outlet_id;
 
       if (!outletId) {
@@ -300,7 +300,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       const order = await this.orderService.createOrder(
         outletId,
         payment_method,
-        orderItems
+        orderItems,
+        is_using_bag,
+        packaging_type
       );
 
       // Map response

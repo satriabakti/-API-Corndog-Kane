@@ -12,6 +12,34 @@ export class OutletProductRequestRepository
   }
 
   /**
+   * Validate that product IDs exist in product_menus table
+   * @throws Error if any product ID is invalid
+   */
+  async validateProductIds(productIds: number[]): Promise<void> {
+    if (productIds.length === 0) return;
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        is_active: true,
+      },
+      select: { id: true },
+    });
+
+    const foundIds = products.map(p => p.id);
+    const missingIds = productIds.filter(id => !foundIds.includes(id));
+
+    if (missingIds.length > 0) {
+      const idText = missingIds.length === 1 ? 'ID' : 'IDs';
+      const productText = missingIds.length === 1 ? 'product' : 'products';
+      throw new Error(
+        `Product ${idText} ${missingIds.join(', ')} not found in menu. ` +
+        `Please verify that you are using valid product menu ${idText} (${productText} must be active and exist in the system).`
+      );
+    }
+  }
+
+  /**
    * Find all product requests by outlet ID
    */
   async findByOutletId(outletId: number): Promise<TOutletProductRequest[]> {

@@ -14,6 +14,62 @@ import { TMaterial, TMaterialWithID } from "../entities/material/material";
 import { TSupplierWithID } from "../entities/suplier/suplier";
 
 /**
+ * Allowed units for material stock in validation
+ */
+const ALLOWED_UNITS = [
+	// Volume
+	'ml', 'mL', 'ML', 'liter', 'L', 'l', 'gallon',
+	// Weight
+	'g', 'gram', 'kg', 'kilogram', 'ton',
+	// Count
+	'pcs', 'unit', 'buah', 'biji', 'butir',
+	// Other
+	'pack', 'box', 'karton'
+];
+
+/**
+ * Validate unit_quantity format
+ */
+function validateUnit(unit: string): void {
+	const normalizedUnit = unit.trim().toLowerCase();
+	const isValid = ALLOWED_UNITS.some(allowed => 
+		allowed.toLowerCase() === normalizedUnit
+	);
+	
+	if (!isValid) {
+		throw new Error(
+			`Invalid unit "${unit}". Allowed units: ${ALLOWED_UNITS.join(', ')}`
+		);
+	}
+}
+
+/**
+ * Check unit consistency for a material
+ */
+async function checkUnitConsistency(
+	materialRepository: MaterialRepository,
+	materialId: number,
+	newUnit: string
+): Promise<void> {
+	// Get product inventories that use this material
+	const productInventories = await materialRepository.getProductInventoriesByMaterial(materialId);
+	
+	if (productInventories.length > 0) {
+		const existingUnit = productInventories[0].unit_quantity;
+		const normalizedNew = newUnit.trim().toLowerCase();
+		const normalizedExisting = existingUnit.trim().toLowerCase();
+		
+		if (normalizedNew !== normalizedExisting) {
+			console.warn(
+				`⚠️  Warning: Material ID ${materialId} unit mismatch. ` +
+				`Product inventory uses "${existingUnit}" but stock in uses "${newUnit}". ` +
+				`This may cause calculation issues.`
+			);
+		}
+	}
+}
+
+/**
  * InventoryService
  * Handles stock in operations for Material only
  */
@@ -94,6 +150,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		data: TInventoryStockInItem,
 		supplier: { id: number; name: string }
 	): Promise<TInventoryStockInEntity> {
+		// Validate unit format
+		validateUnit(data.unit_quantity);
+		
 		let materialId: number;
 
 		// Create new material if needed
@@ -106,6 +165,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			materialId = newMaterial.id;
 		} else if (data.material_id) {
 			materialId = data.material_id;
+			
+			// Check unit consistency with product_inventory
+			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
 		} else {
 			throw new Error("Either material_id or material must be provided");
 		}
@@ -183,6 +245,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		id: number,
 		data: TInventoryStockInUpdateRequest
 	): Promise<TInventoryStockInEntity> {
+		// Validate unit format
+		validateUnit(data.unit_quantity);
+		
 		let materialId: number;
 
 		// Handle material creation if needed
@@ -195,6 +260,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			materialId = newMaterial.id;
 		} else if (data.material_id) {
 			materialId = data.material_id;
+			
+			// Check unit consistency
+			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
 		} else {
 			throw new Error("Either material_id or material must be provided");
 		}

@@ -80,6 +80,10 @@ export class OrderResponseMapper {
     invoice_number: string;
     createdAt: Date;
     total_amount: number;
+    outlet?: {
+      id: number;
+      name: string;
+    } | null;
     items: Array<{
       quantity: number;
       price: number;
@@ -93,6 +97,7 @@ export class OrderResponseMapper {
       invoice_number: order.invoice_number,
       date: order.createdAt.toISOString().split('T')[0], // YYYY-MM-DD
       total_amount: order.total_amount,
+      outlet_name: order.outlet?.name || null,
     };
 
     // Group items by category

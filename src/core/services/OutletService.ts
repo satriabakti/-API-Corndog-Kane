@@ -158,14 +158,14 @@ export default class OutletService extends Service<TOutlet> {
       
       // Apply scenario logic based on previous_status
       if (previousStatus === 'PRESENT') {
-        // Scenario 2: SWAP employees
+        // Scenario 2: SWAP employees - DO NOT create attendance
         actionType = 'swap';
         
         // Find new employee's current assignment for this date
         const newEmployeeAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
         
         if (newEmployeeAssignment) {
-          // Swap the two employees
+          // Swap the two employees (no attendance created)
           const swapped = await this.repository.swapEmployeeAssignments(
             existingAssignment.employee_id,
             employeeId,
@@ -175,18 +175,11 @@ export default class OutletService extends Service<TOutlet> {
           );
           assignments.push(...swapped);
         } else {
-          // New employee has no assignment - just do simple replace
-          const result = await this.repository.replaceEmployeeWithAttendance(
-            existingAssignment.employee_id,
-            employeeId,
-            outletId,
-            date,
-            previousStatus as any,
-            notes
-          );
-          assignments.push(result.assignment);
-          attendances.push(result.attendance);
-          actionType = 'replace';
+          // New employee has no assignment - just reassign without attendance
+          await this.repository.assignEmployeeToOutlet(outletId, employeeId, date);
+          const newAssignment = await this.repository.assignEmployeeToOutlet(outletId, employeeId, date);
+          assignments.push(newAssignment);
+          actionType = 'simple_assignment';
         }
       } else if (previousStatus) {
         // Scenario 1 & 3: REPLACE with status (SICK, NOT_PRESENT, etc.)
@@ -299,6 +292,8 @@ export default class OutletService extends Service<TOutlet> {
     status?: string
   ): Promise<{
     outlet_id: number;
+    outlet_name: string;
+    outlet_code: string;
     total_income: number;
     total_expenses: number;
     total_profit: number;

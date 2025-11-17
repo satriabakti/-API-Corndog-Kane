@@ -47,6 +47,32 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     }
     data.product_id = productId!;
     const materials = data.materials;
+    
+    // VALIDATION: Check material stock availability before creating inventory
+    for (const material of materials) {
+      const requiredQuantity = material.quantity * data.quantity;
+      
+      // Get material with stocks
+      const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
+      
+      if (!materialWithStocks) {
+        throw new Error(`Material with ID ${material.material_id} not found`);
+      }
+      
+      // Calculate available stock
+      const totalStockIn = materialWithStocks.materialIn.reduce((sum, item) => sum + item.quantity, 0);
+      const totalStockOut = materialWithStocks.materialOut.reduce((sum, item) => sum + item.quantity, 0);
+      const availableStock = totalStockIn - totalStockOut;
+      
+      // Check if sufficient stock
+      if (availableStock < requiredQuantity) {
+        throw new Error(
+          `Insufficient stock for material "${materialWithStocks.name}". ` +
+          `Available: ${availableStock} ${material.unit}, Required: ${requiredQuantity} ${material.unit}`
+        );
+      }
+    }
+    
     // Here you might want to create entries in a product inventory table for each material
     // associated with the master product. This depends on your database schema.
     const materialsCreaated = materials.map(async (material) => new Promise( (resolve) => {
@@ -101,7 +127,33 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     );
     
     const materials: any[]= data.materials;
+    
+    // VALIDATION: Check material stock availability before updating inventory
     if (materials && materials.length > 0) {
+      for (const material of materials) {
+        const requiredQuantity = material.quantity * data.quantity;
+        
+        // Get material with stocks
+        const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
+        
+        if (!materialWithStocks) {
+          throw new Error(`Material with ID ${material.material_id} not found`);
+        }
+        
+        // Calculate available stock
+        const totalStockIn = materialWithStocks.materialIn.reduce((sum, item) => sum + item.quantity, 0);
+        const totalStockOut = materialWithStocks.materialOut.reduce((sum, item) => sum + item.quantity, 0);
+        const availableStock = totalStockIn - totalStockOut;
+        
+        // Check if sufficient stock
+        if (availableStock < requiredQuantity) {
+          throw new Error(
+            `Insufficient stock for material "${materialWithStocks.name}". ` +
+            `Available: ${availableStock} ${material.unit}, Required: ${requiredQuantity} ${material.unit}`
+          );
+        }
+      }
+      
        materialsUpdated = materials.map(async (material:any) => new Promise((resolve) => {
          const inventoryData: any = {
           material_id: material.material_id,

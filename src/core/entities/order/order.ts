@@ -20,6 +20,8 @@ export type TOrder = {
   paymentMethod: string;
   totalAmount: number;
   status: string;
+  isUsingBag?: string | null;
+  packagingType?: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +39,8 @@ export type TOrderCreate = {
   paymentMethod: string;
   totalAmount: number;
   status: string;
+  isUsingBag?: string | null;
+  packagingType?: string | null;
 };
 
 export type TOrderItemCreate = {
@@ -49,6 +53,8 @@ export type TOrderItemCreate = {
 
 export type TOrderCreateRequest = {
   payment_method: string;
+  is_using_bag?: 'small' | 'medium' | 'large';
+  packaging_type?: 'cup' | 'box' | 'none';
   items: {
     product_id: number;
     qty: number;
@@ -93,7 +99,8 @@ export type TOrderListResponse = {
   invoice_number: string;
   date: string;
   total_amount: number;
-  [categoryName: string]: string | number | {
+  outlet_name: string | null;
+  [categoryName: string]: string | number | null | {
     quantity: number;
     total_amount: number;
     items: string[];

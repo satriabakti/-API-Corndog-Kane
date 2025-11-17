@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import router from './routers/index';
 import bodyParser from 'body-parser';
 import { initializeWebSocket } from '../websocket';
+import { errorHandler } from './middlewares/errorHandler';
 
 export default class RestApiTransport{
 
@@ -21,6 +22,9 @@ export default class RestApiTransport{
     RestApiTransport.app.use(bodyParser.urlencoded({ extended: true }));
     RestApiTransport.app.use('/uploads', express.static('public'));
     RestApiTransport.app.use('/api', router);
+    
+    // Global error handler - must be last
+    RestApiTransport.app.use(errorHandler);
   }
 
   static boot() {

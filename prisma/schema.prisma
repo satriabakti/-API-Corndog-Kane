@@ -64,6 +64,18 @@ enum PRODUCTSOURCE {
   PURCHASE
 }
 
+enum BagSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum PackagingType {
+  CUP
+  BOX
+  NONE
+}
+
 // ============================================================================
 // CORE MODULE - Authentication & Authorization
 // ============================================================================
@@ -266,6 +278,7 @@ model material {
   material_out MaterialOut[]
   requests     OutletMaterialRequest[]
   products     ProductInventory[]
+  order_usages OrderMaterialUsage[]
   @@map("materials")
 }
 
@@ -438,23 +451,27 @@ model Attendance {
 // ============================================================================
 
 model Order {
-  id              Int         @id @default(autoincrement())
+  id              Int                   @id @default(autoincrement())
   outlet_id       Int
   outlet_location String
-  invoice_number  String      @unique
+  invoice_number  String                @unique
   employee_id     Int
   payment_method  String
   total_amount    Int
-  status          String      @default("PENDING")
-  is_active       Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  status          String                @default("PENDING")
+  is_using_bag    BagSize?
+  packaging_type  PackagingType?
+  is_active       Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   items           OrderItem[]
-  outlet          Outlet      @relation(fields: [outlet_id], references: [id])
-  employee        Employee    @relation(fields: [employee_id], references: [id])
+  material_usage  OrderMaterialUsage[]
+  outlet          Outlet                @relation(fields: [outlet_id], references: [id])
+  employee        Employee              @relation(fields: [employee_id], references: [id])
 
   @@map("orders")
 }
+
 
 model OrderItem {
   id         Int      @id @default(autoincrement())
@@ -472,6 +489,21 @@ model OrderItem {
   updatedAt  DateTime @updatedAt
 
   @@map("order_items")
+}
+
+model OrderMaterialUsage {
+  id            Int      @id @default(autoincrement())
+  order_id      Int
+  material_id   Int
+  quantity      Int
+  quantity_unit String
+  used_at       DateTime @default(now())
+  order         Order    @relation(fields: [order_id], references: [id])
+  material      material @relation(fields: [material_id], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("order_material_usages")
 }
 
 // ============================================================================

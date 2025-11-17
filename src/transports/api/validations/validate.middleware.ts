@@ -34,7 +34,7 @@ export const validate = (schema: ZodObject<ZodRawShape>) => {
           status: 'failed',
           message: 'Validation failed',
           errors,
-          data: {},
+          data: null,
           metadata: {}
         });
       }
@@ -48,7 +48,7 @@ export const validate = (schema: ZodObject<ZodRawShape>) => {
           message: 'An unexpected error occurred',
           type: 'internal_error'
         }],
-        data: {},
+        data: null,
         metadata: {}
       });
     }

@@ -22,16 +22,17 @@ export function getNextSaturday(startDate: Date): Date {
 
 /**
  * Get the last Saturday of the month for a given date
+ * If start date is in current month, generate from start date to last Saturday
  * @param startDate - The starting date
  * @returns Date object set to the last Saturday of the month at 23:59:59
  */
 export function getLastSaturdayOfMonth(startDate: Date): Date {
   const date = new Date(startDate);
   
-  // Get the last day of the month
+  // Get the last day of the current month
   const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   
-  // Find the last Saturday
+  // Find the last Saturday of this month
   const lastDayWeekday = lastDayOfMonth.getDay();
   let daysToSubtract = 0;
   
@@ -39,10 +40,10 @@ export function getLastSaturdayOfMonth(startDate: Date): Date {
     // Last day is Saturday
     daysToSubtract = 0;
   } else if (lastDayWeekday === 0) {
-    // Last day is Sunday
+    // Last day is Sunday, go back 1 day
     daysToSubtract = 1;
   } else {
-    // Last day is weekday (1-5)
+    // Last day is weekday (1-5), calculate days back to Saturday
     daysToSubtract = lastDayWeekday + 1;
   }
   

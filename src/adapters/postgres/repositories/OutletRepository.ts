@@ -214,7 +214,7 @@ export default class OutletRepository
 
   /**
    * Get setting for checkin based on day and time
-   * Returns the setting with the latest checkin_time that is <= current time
+   * Returns the first available setting for the day (flexible time matching)
    */
   async getSettingForCheckin(outletId: number, day: string, currentTime: string): Promise<TOutletSettingEntity | null> {
     const settings = await this.prisma.outletSetting.findMany({
@@ -223,16 +223,14 @@ export default class OutletRepository
         day: { has: day as DAY },
       },
       orderBy: {
-        check_in_time: 'desc',
+        check_in_time: 'asc',
       },
     });
     
-    // Filter settings where check_in_time <= currentTime
-    const validSettings = settings.filter(s => s.check_in_time <= currentTime);
+    if (settings.length === 0) return null;
     
-    if (validSettings.length === 0) return null;
-    
-    const setting = validSettings[0];
+    // Return the first available setting (allows checkin at any time for the day)
+    const setting = settings[0];
     return {
       id: setting.id,
       outletId: setting.outlet_id,
@@ -314,100 +312,118 @@ export default class OutletRepository
     startDate?: Date,
     endDate?: Date
   ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
-    // Get all products
-    const productsRaw = await this.prisma.product.findMany({
-      where: { is_active: true },
-      include: {
-        product_master: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: { id: 'asc' },
-    });
-
-    // Map products to include name field
-    const products = productsRaw.map(p => ({
-      ...p,
-      name: p.product_master.name,
-    }));
-
-    // Set date range - default last 30 days if not provided
-    const end = endDate || new Date();
-    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // Get today's date for filtering - only show today's data
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
     
-    // Get all dates in range
-    const dates: string[] = [];
-    const currentDate = new Date(start);
-    currentDate.setHours(0, 0, 0, 0);
+    // Get products that have activity today (approved requests or orders)
+    const productsWithActivity = await this.prisma.$queryRaw<Array<{ product_id: number; product_name: string }>>`
+      SELECT DISTINCT p.id as product_id, pm.name as product_name
+      FROM product_menus p
+      INNER JOIN product_masters pm ON p.product_master_id = pm.id
+      WHERE pm.is_active = true
+        AND p.is_active = true
+        AND (
+          -- Has APPROVED product requests today
+          EXISTS (
+            SELECT 1 FROM outlet_requests opr
+            WHERE opr.product_id = p.id
+              AND opr.outlet_id = ${outletId}
+              AND opr.status = 'APPROVED'
+              AND DATE(opr."updatedAt") = ${todayStr}::date
+          )
+          OR
+          -- Has orders today
+          EXISTS (
+            SELECT 1 FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE oi.product_id = p.id
+              AND o.outlet_id = ${outletId}
+              AND DATE(o."createdAt") = ${todayStr}::date
+          )
+        )
+      ORDER BY p.id ASC
+    `;
     
-    while (currentDate <= end) {
-      dates.push(currentDate.toISOString().split('T')[0]);
-      currentDate.setDate(currentDate.getDate() + 1);
+    // If no products with activity, return empty
+    if (productsWithActivity.length === 0) {
+      return { stocks: [], total: 0 };
     }
 
-    // Reverse to show newest first
-    dates.reverse();
-
-    // Build flat array of all date × product combinations
+    // Build array of today's data only
     const allRecords: TOutletStockItem[] = [];
 
-    for (const date of dates) {
-      const currentDateObj = new Date(date);
-      
-      const previousDate = new Date(currentDateObj);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
+    // Get yesterday's date for calculating first_stock
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-      for (const product of products) {
-        // Calculate first_stock (remaining_stock from previous day)
-        const previousDayIndex = allRecords.findIndex(
-          r => r.date === previousDateStr && r.product_id === product.id
-        );
-        const firstStock = previousDayIndex >= 0 ? allRecords[previousDayIndex].remaining_stock : 0;
+    for (const product of productsWithActivity) {
+      // Calculate first_stock from yesterday's remaining stock
+      const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
+        FROM "outlet_requests" opr
+        WHERE opr."product_id" = ${product.product_id}
+          AND opr."outlet_id" = ${outletId}
+          AND opr."status" = 'APPROVED'
+          AND opr."is_active" = true
+          AND DATE(opr."updatedAt") = ${yesterdayStr}::date
+      `;
+      const yesterdayIn = Number(yesterdayStockIn[0]?.total || 0);
 
-        // Calculate stock_in (approved outlet requests for this day)
-        // Use DATE(updatedAt) for timezone-safe date comparison
-        const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
-          SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
-          FROM "outlet_requests"
-          WHERE "product_id" = ${product.id}
-            AND "outlet_id" = ${outletId}
-            AND "status" = 'APPROVED'
-            AND "is_active" = true
-            AND DATE("updatedAt") = ${date}::date
-        `;
-        const stockIn = Number(stockInResult[0]?.total || 0);
+      const yesterdaySold = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
+        FROM "order_items" oi
+        INNER JOIN "orders" o ON oi."order_id" = o."id"
+        WHERE oi."product_id" = ${product.product_id}
+          AND o."outlet_id" = ${outletId}
+          AND o."is_active" = true
+          AND oi."is_active" = true
+          AND DATE(o."createdAt") = ${yesterdayStr}::date
+      `;
+      const yesterdayOut = Number(yesterdaySold[0]?.total || 0);
 
-        // Calculate sold_stock (order items for this day)
-        // Use DATE(createdAt) for timezone-safe date comparison
-        const soldStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
-          SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
-          FROM "order_items" oi
-          INNER JOIN "orders" o ON oi."order_id" = o."id"
-          WHERE oi."product_id" = ${product.id}
-            AND o."outlet_id" = ${outletId}
-            AND o."is_active" = true
-            AND oi."is_active" = true
-            AND DATE(o."createdAt") = ${date}::date
-        `;
-        const soldStock = Number(soldStockResult[0]?.total || 0);
+      // First stock is yesterday's stock_in minus yesterday's sold
+      const firstStock = yesterdayIn - yesterdayOut;
 
-        
-        // Calculate remaining_stock
-        const remainingStock = firstStock + stockIn - soldStock;
+      // Calculate stock_in (approved outlet requests for today)
+      const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
+        FROM "outlet_requests" opr
+        WHERE opr."product_id" = ${product.product_id}
+          AND opr."outlet_id" = ${outletId}
+          AND opr."status" = 'APPROVED'
+          AND opr."is_active" = true
+          AND DATE(opr."updatedAt") = ${todayStr}::date
+      `;
+      const stockIn = Number(stockInResult[0]?.total || 0);
 
-        allRecords.push({
-          date,
-          product_id: product.id,
-          product_name: product.name,
-          first_stock: firstStock,
-          stock_in: stockIn,
-          sold_stock: soldStock,
-          remaining_stock: remainingStock,
-        });
-      }
+      // Calculate sold_stock (order items for today)
+      const soldStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
+        FROM "order_items" oi
+        INNER JOIN "orders" o ON oi."order_id" = o."id"
+        WHERE oi."product_id" = ${product.product_id}
+          AND o."outlet_id" = ${outletId}
+          AND o."is_active" = true
+          AND oi."is_active" = true
+          AND DATE(o."createdAt") = ${todayStr}::date
+      `;
+      const soldStock = Number(soldStockResult[0]?.total || 0);
+
+      // Calculate remaining_stock
+      const remainingStock = firstStock + stockIn - soldStock;
+
+      allRecords.push({
+        date: todayStr,
+        product_id: product.product_id,
+        product_name: product.product_name,
+        first_stock: firstStock,
+        stock_in: stockIn,
+        sold_stock: soldStock,
+        remaining_stock: remainingStock,
+      });
     }
 
     // Apply pagination
@@ -440,86 +456,114 @@ export default class OutletRepository
     startDate?: Date,
     endDate?: Date
   ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
-    // Get all materials
-    const materials = await this.prisma.material.findMany({
-      where: { is_active: true },
-      select: { id: true, name: true },
-      orderBy: { id: 'asc' },
-    });
-
-    // Set date range - default last 30 days if not provided
-    const end = endDate || new Date();
-    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // Get today's date for filtering - only show today's data
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
     
-    // Get all dates in range
-    const dates: string[] = [];
-    const currentDate = new Date(start);
-    currentDate.setHours(0, 0, 0, 0);
+    // Get materials that have activity today (approved requests or orders)
+    const materialsWithActivity = await this.prisma.$queryRaw<Array<{ material_id: number; material_name: string }>>`
+      SELECT DISTINCT m.id as material_id, m.name as material_name
+      FROM materials m
+      WHERE m.is_active = true
+        AND (
+          -- Has APPROVED material requests today
+          EXISTS (
+            SELECT 1 FROM outlet_material_requests omr
+            WHERE omr.material_id = m.id
+              AND omr.outlet_id = ${outletId}
+              AND omr.status = 'APPROVED'
+              AND DATE(omr."updatedAt") = ${todayStr}::date
+          )
+          OR
+          -- Has material usage from orders today
+          EXISTS (
+            SELECT 1 FROM order_material_usages omu
+            INNER JOIN orders o ON omu.order_id = o.id
+            WHERE omu.material_id = m.id
+              AND o.outlet_id = ${outletId}
+              AND DATE(o."createdAt") = ${todayStr}::date
+          )
+        )
+      ORDER BY m.id ASC
+    `;
     
-    while (currentDate <= end) {
-      dates.push(currentDate.toISOString().split('T')[0]);
-      currentDate.setDate(currentDate.getDate() + 1);
+    // If no materials with activity, return empty
+    if (materialsWithActivity.length === 0) {
+      return { stocks: [], total: 0 };
     }
 
-    // Reverse to show newest first
-    dates.reverse();
-
-    // Build flat array of all date × material combinations
+    // Build array of today's data only
     const allRecords: TMaterialStockItem[] = [];
 
-    for (const date of dates) {
-      const currentDateObj = new Date(date);
+    // Get yesterday's date for calculating first_stock
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-      const previousDate = new Date(currentDateObj);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousDateStr = previousDate.toISOString().split('T')[0];
+    for (const material of materialsWithActivity) {
+      // Calculate first_stock from yesterday's remaining stock
+      const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
+        FROM "outlet_material_requests"
+        WHERE "material_id" = ${material.material_id}
+          AND "outlet_id" = ${outletId}
+          AND "status" = 'APPROVED'
+          AND "is_active" = true
+          AND DATE("updatedAt") = ${yesterdayStr}::date
+      `;
+      const yesterdayIn = Number(yesterdayStockIn[0]?.total || 0);
 
-      for (const material of materials) {
-        // Calculate first_stock (remaining_stock from previous day)
-        const previousDayIndex = allRecords.findIndex(
-          r => r.date === previousDateStr && r.material_id === material.id
-        );
-        const firstStock = previousDayIndex >= 0 ? allRecords[previousDayIndex].remaining_stock : 0;
+      const yesterdayUsed = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(omu."quantity"), 0)::bigint as total
+        FROM "order_material_usages" omu
+        INNER JOIN "orders" o ON omu."order_id" = o."id"
+        WHERE omu."material_id" = ${material.material_id}
+          AND o."outlet_id" = ${outletId}
+          AND DATE(omu."used_at") = ${yesterdayStr}::date
+      `;
+      const yesterdayOut = Number(yesterdayUsed[0]?.total || 0);
 
-        // Calculate stock_in (approved outlet material requests for this day)
-        // Use DATE(updatedAt) for timezone-safe date comparison
-        const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
-          SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
-          FROM "outlet_material_requests"
-          WHERE "material_id" = ${material.id}
-            AND "outlet_id" = ${outletId}
-            AND "status" = 'APPROVED'
-            AND "is_active" = true
-            AND DATE("updatedAt") = ${date}::date
-        `;
-        const stockIn = Number(stockInResult[0]?.total || 0);
+      // First stock is yesterday's stock_in minus yesterday's used
+      const firstStock = yesterdayIn - yesterdayOut;
 
-        // Calculate used_stock (material out for this day)
-        // Use DATE(used_at) for timezone-safe date comparison
-        const usedStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
-          SELECT COALESCE(SUM("quantity"), 0)::bigint as total
-          FROM "material_outs"
-          WHERE "material_id" = ${material.id}
-            AND DATE("used_at") = ${date}::date
-        `;
-        const usedStock = Number(usedStockResult[0]?.total || 0);
+      // Calculate stock_in (approved outlet material requests for today)
+      const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
+        FROM "outlet_material_requests"
+        WHERE "material_id" = ${material.material_id}
+          AND "outlet_id" = ${outletId}
+          AND "status" = 'APPROVED'
+          AND "is_active" = true
+          AND DATE("updatedAt") = ${todayStr}::date
+      `;
+      const stockIn = Number(stockInResult[0]?.total || 0);
 
-        // Calculate remaining_stock
-        const remainingStock = firstStock + stockIn - usedStock;
+      // Calculate used_stock from order_material_usages (outlet-specific)
+      const usedStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+        SELECT COALESCE(SUM(omu."quantity"), 0)::bigint as total
+        FROM "order_material_usages" omu
+        INNER JOIN "orders" o ON omu."order_id" = o."id"
+        WHERE omu."material_id" = ${material.material_id}
+          AND o."outlet_id" = ${outletId}
+          AND DATE(omu."used_at") = ${todayStr}::date
+      `;
+      const usedStock = Number(usedStockResult[0]?.total || 0);
 
-        allRecords.push({
-          date,
-          material_id: material.id,
-          material_name: material.name,
-          first_stock: firstStock,
-          stock_in: stockIn,
-          used_stock: usedStock,
-          remaining_stock: remainingStock,
-        });
-      }
+      // Calculate remaining_stock
+      const remainingStock = firstStock + stockIn - usedStock;
+
+      allRecords.push({
+        date: todayStr,
+        material_id: material.material_id,
+        material_name: material.material_name,
+        first_stock: firstStock,
+        stock_in: stockIn,
+        used_stock: usedStock,
+        remaining_stock: remainingStock,
+      });
     }
 
-    // Apply pagination
     // Apply pagination
     const total = allRecords.length;
     
@@ -811,11 +855,23 @@ export default class OutletRepository
     status?: string
   ): Promise<{
     outlet_id: number;
+    outlet_name: string;
+    outlet_code: string;
     total_income: number;
     total_expenses: number;
     total_profit: number;
     total_sold_quantity: number;
   }> {
+    // Get outlet details
+    const outlet = await this.prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { name: true, code: true }
+    });
+
+    if (!outlet) {
+      throw new Error(`Outlet with ID ${outletId} not found`);
+    }
+
     // Build where clause for orders
     const whereOrder: Record<string, unknown> = {
       outlet_id: outletId,
@@ -866,6 +922,8 @@ export default class OutletRepository
 
     return {
       outlet_id: outletId,
+      outlet_name: outlet.name,
+      outlet_code: outlet.code,
       total_income: Math.round(totalIncome),
       total_expenses: 0,
       total_profit: Math.round(totalProfit),

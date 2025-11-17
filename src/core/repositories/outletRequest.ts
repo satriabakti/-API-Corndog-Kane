@@ -9,6 +9,11 @@ import Repository from "./Repository";
  */
 export interface OutletProductRequestRepository extends Repository<TOutletProductRequest> {
   /**
+   * Validate that product IDs exist in product_menus table
+   */
+  validateProductIds(productIds: number[]): Promise<void>;
+
+  /**
    * Find all product requests by outlet ID
    */
   findByOutletId(outletId: number): Promise<TOutletProductRequest[]>;

@@ -216,6 +216,33 @@ export default class MaterialRepository
 
 		return remainingStock;
 	}
+
+	/**
+	 * Get product inventories that use this material
+	 * Used for unit consistency validation
+	 */
+	async getProductInventoriesByMaterial(materialId: number): Promise<Array<{
+		id: number;
+		product_id: number;
+		quantity: number;
+		unit_quantity: string;
+	}>> {
+		const records = await this.prisma.productInventory.findMany({
+			where: {
+				material_id: materialId
+			},
+			select: {
+				id: true,
+				product_id: true,
+				quantity: true,
+				unit_quantity: true
+			}
+		});
+
+		return records;
+	}
 }
+
+
 
 

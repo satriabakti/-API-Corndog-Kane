@@ -166,6 +166,8 @@ export default class OrderRepository
 					payment_method: orderData.paymentMethod,
 					total_amount: orderData.totalAmount,
 					status: orderData.status,
+					is_using_bag: orderData.isUsingBag as any,
+					packaging_type: orderData.packagingType as any,
 					is_active: true,
 				},
 			});
@@ -207,6 +209,9 @@ export default class OrderRepository
 					return { ...parentItem, sub_items: subItemsData };
 				})
 			);
+
+			// ===== RECORD MATERIAL USAGE =====
+			await this.recordMaterialUsage(tx, order.id, orderItems, orderData);
 
 			// Return mapped entity with items
 			return {
@@ -250,6 +255,194 @@ export default class OrderRepository
 	}
 
 	/**
+	 * Record material usage for an order
+	 * Records: 1) Product inventory materials, 2) Minyak (special case), 3) Bag, 4) Packaging
+	 */
+	private async recordMaterialUsage(
+		tx: any,
+		orderId: number,
+		orderItems: any[],
+		orderData: TOrderCreate
+	): Promise<void> {
+		const materialUsageRecords: Array<{
+			order_id: number;
+			material_id: number;
+			quantity: number;
+			quantity_unit: string;
+		}> = [];
+
+		// Get all parent items (root items only)
+		const parentItems = orderItems.filter(item => !item.order_item_root_id);
+		
+		// Track total parent quantity for bag/packaging
+		const totalParentQuantity = parentItems.reduce((sum, item) => sum + item.quantity, 0);
+
+		// Map to track materials already processed (to aggregate quantities)
+		const materialMap = new Map<number, { quantity: number; unit: string }>();
+
+		// 1. PROCESS PRODUCT INVENTORY MATERIALS (excluding minyak - handled separately)
+		for (const item of parentItems) {
+			const productInventories = await tx.productInventory.findMany({
+				where: { 
+					product_id: item.product_id 
+				},
+				include: {
+					material: true
+				}
+			});
+
+			for (const inv of productInventories) {
+				const materialName = inv.material.name.toLowerCase();
+				
+				// Skip minyak, bag, packaging materials (handled separately)
+				if (
+					materialName.includes('minyak') ||
+					materialName.includes('keresek') ||
+					materialName.includes('kantong') ||
+					materialName.includes('box') ||
+					materialName.includes('kardus') ||
+					materialName.includes('cup') ||
+					materialName.includes('gelas')
+				) {
+					continue;
+				}
+
+				const materialQuantity = inv.quantity * item.quantity;
+				const existing = materialMap.get(inv.material_id);
+				
+				if (existing) {
+					existing.quantity += materialQuantity;
+				} else {
+					materialMap.set(inv.material_id, {
+						quantity: materialQuantity,
+						unit: inv.unit_quantity
+					});
+				}
+			}
+		}
+
+		// 2. PROCESS MINYAK (SPECIAL CASE - aggregate all minyak usage into 1 record)
+		let totalMinyakQuantity = 0;
+		let minyakMaterialId: number | null = null;
+		let minyakUnit = 'ml';
+
+		for (const item of parentItems) {
+			const productInventories = await tx.productInventory.findMany({
+				where: { product_id: item.product_id },
+				include: { material: true }
+			});
+
+			for (const inv of productInventories) {
+				const materialName = inv.material.name.toLowerCase();
+				if (materialName.includes('minyak')) {
+					totalMinyakQuantity += inv.quantity * item.quantity;
+					minyakMaterialId = inv.material_id;
+					minyakUnit = inv.unit_quantity;
+				}
+			}
+		}
+
+		// Add minyak to map if used
+		if (minyakMaterialId && totalMinyakQuantity > 0) {
+			materialMap.set(minyakMaterialId, {
+				quantity: totalMinyakQuantity,
+				unit: minyakUnit
+			});
+		}
+
+		// 3. PROCESS BAG (if is_using_bag is set)
+		if (orderData.isUsingBag) {
+			let searchPattern = '';
+			if (orderData.isUsingBag === 'SMALL') {
+				searchPattern = '%keresek kecil%';
+			} else if (orderData.isUsingBag === 'MEDIUM') {
+				searchPattern = '%keresek sedang%';
+			} else if (orderData.isUsingBag === 'LARGE') {
+				searchPattern = '%keresek besar%';
+			}
+
+			if (searchPattern) {
+				const bagMaterial = await tx.material.findFirst({
+					where: {
+						OR: [
+							{ name: { contains: searchPattern.replace(/%/g, ''), mode: 'insensitive' } },
+							{ name: { contains: searchPattern.replace(/%/g, '').replace('keresek', 'kantong'), mode: 'insensitive' } }
+						],
+						is_active: true
+					},
+					include: {
+						material_in: {
+							orderBy: { received_at: 'desc' },
+							take: 1
+						}
+					}
+				});
+
+				if (bagMaterial) {
+					const bagUnit = bagMaterial.material_in[0]?.quantity_unit || 'pcs';
+					materialMap.set(bagMaterial.id, {
+						quantity: totalParentQuantity,
+						unit: bagUnit
+					});
+				}
+			}
+		}
+
+		// 4. PROCESS PACKAGING (if packaging_type is set and not NONE)
+		if (orderData.packagingType && orderData.packagingType !== 'NONE') {
+			let searchPatterns: string[] = [];
+			
+			if (orderData.packagingType === 'BOX') {
+				searchPatterns = ['box', 'kardus'];
+			} else if (orderData.packagingType === 'CUP') {
+				searchPatterns = ['cup', 'gelas plastik', 'gelas'];
+			}
+
+			if (searchPatterns.length > 0) {
+				const packagingMaterial = await tx.material.findFirst({
+					where: {
+						OR: searchPatterns.map(pattern => ({
+							name: { contains: pattern, mode: 'insensitive' }
+						})),
+						is_active: true
+					},
+					include: {
+						material_in: {
+							orderBy: { received_at: 'desc' },
+							take: 1
+						}
+					}
+				});
+
+				if (packagingMaterial) {
+					const packUnit = packagingMaterial.material_in[0]?.quantity_unit || 'pcs';
+					materialMap.set(packagingMaterial.id, {
+						quantity: totalParentQuantity,
+						unit: packUnit
+					});
+				}
+			}
+		}
+
+		// Convert map to array of records
+		for (const [materialId, data] of materialMap.entries()) {
+			materialUsageRecords.push({
+				order_id: orderId,
+				material_id: materialId,
+				quantity: data.quantity,
+				quantity_unit: data.unit
+			});
+		}
+
+		// Bulk insert all material usage records
+		if (materialUsageRecords.length > 0) {
+			await tx.orderMaterialUsage.createMany({
+				data: materialUsageRecords
+			});
+		}
+	}
+
+	/**
 	 * Get all orders with items and product details (for list)
 	 */
 	async getAllOrdersWithDetails(page: number = 1, limit: number = 10) {
@@ -259,6 +452,12 @@ export default class OrderRepository
 			this.prisma.order.findMany({
 				where: { is_active: true },
 				include: {
+					outlet: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
 					items: {
 						include: {
 							product: {

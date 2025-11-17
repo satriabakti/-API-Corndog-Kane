@@ -15,7 +15,9 @@ export default class OrderService extends Service<TOrder> {
 	async createOrder(
 		outletId: number,
 		paymentMethod: string,
-		items: { productId: number; qty: number; productItemsIds?: { productId: number; qty: number }[] }[]
+		items: { productId: number; qty: number; productItemsIds?: { productId: number; qty: number }[] }[],
+		isUsingBag?: 'small' | 'medium' | 'large',
+		packagingType?: 'cup' | 'box' | 'none'
 	): Promise<TOrderWithItems> {
 		// 1. Get employee assigned today
 		const employeeId = await this.repository.getEmployeeAssignedToday(outletId);
@@ -116,6 +118,8 @@ export default class OrderService extends Service<TOrder> {
 			paymentMethod,
 			totalAmount,
 			status: 'SUCCESS',
+			isUsingBag: isUsingBag ? isUsingBag.toUpperCase() : null,
+			packagingType: packagingType ? packagingType.toUpperCase() : null,
 		};
 
 		return await this.repository.createOrderWithItems(orderData, orderItems);

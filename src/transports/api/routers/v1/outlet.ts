@@ -59,6 +59,30 @@ router.get(
 	outletController.getOutletMaterialStocks
 );
 
+// Dynamic stocks route - supports :category parameter (products, materials, summarize)
+router.get(
+	"/:id/stocks/:category",
+	(req, res) => {
+		const { category } = req.params;
+		
+		// Route to appropriate handler based on category
+		if (category === 'products') {
+			return outletController.getOutletProductStocks(req, res);
+		} else if (category === 'materials') {
+			return outletController.getOutletMaterialStocks(req, res);
+		} else if (category === 'summarize') {
+			return outletController.getSummarize(req, res);
+		} else {
+			return res.status(400).json({
+				status: 'error',
+				message: `Invalid category "${category}". Must be one of: products, materials, summarize`,
+				data: null,
+				metadata: {}
+			});
+		}
+	}
+);
+
 // Get outlet financial summary
 router.get(
 	"/:id/stocks/summarize",

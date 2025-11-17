@@ -37,6 +37,10 @@ export class OutletRequestService {
 
     // Create product requests if provided
     if (data.products && data.products.length > 0) {
+      // Validate all product IDs exist in product_menus
+      const productIds = data.products.map(p => p.productId);
+      await this.productRequestRepo.validateProductIds(productIds);
+
       productRequests = await this.productRequestRepo.batchCreate(
         data.products.map((p) => ({
           outletId: data.outletId,

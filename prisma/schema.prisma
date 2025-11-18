@@ -545,5 +545,55 @@ model OutletMaterialRequest {
   @@map("outlet_material_requests")
 }
 
+//analize this schema for coa Finance for the endpoint is 
+//1. /finannce/accounts -> crud and get all of account can be filtered by category
+//2. /finance/acccount-categories -> getr all account category
+//3. /finance/transaction must be crud and get all of transaction for createing must be date,account_id,type,amount,description with updated to balance on account, for get all of transaction must be  date,account_name,account_id,description,amount of credit, amount of debit
+
+//4. ./finance/reports?type=table|pdf|xlsx&start_date&end_date&account_category_ids=1,2,3 on the table type must be  grup the transaction on same date  with the field date,account_name,account_id,description,income_amount,expence_amount, and up 1 level is total of saldo with sum 
+
 
 // finance
+//model Account{
+//  id          Int      @id @default(autoincrement())
+//  name        String
+//  number      String   @unique
+//  balance     Float    @default(0)
+//  description String?
+//  account_category_id Int
+//  account_category    AccountCategory @relation(fields: [account_category_id], references: [id])
+//  transactions Transaction[]
+//  is_active   Boolean  @default(true)
+ // createdAt   DateTime @default(now())
+//  updatedAt   DateTime @updatedAt
+
+
+//}
+//model AccountCategory{
+//  id          Int      @id @default(autoincrement())
+//  name        String   @unique
+ // description String?
+//  is_active   Boolean  @default(true)
+//  accounts     Account[]
+//  createdAt   DateTime @default(now())
+//  updatedAt   DateTime @updatedAt
+//  
+//}
+//enum TransactionType {
+//  INCOME
+//  EXPENSE
+//}
+//model Transaction{
+//  id              Int      @id @default(autoincrement())
+//  account_id      Int
+//  amount          Float
+//  transaction_type TransactionType
+//  description     String?
+//  transaction_date DateTime @default(now())
+//
+//  account         Account  @relation(fields: [account_id], references: [id])
+//  createdAt       DateTime @default(now())
+//  updatedAt       DateTime @updatedAt
+//
+//}
+//

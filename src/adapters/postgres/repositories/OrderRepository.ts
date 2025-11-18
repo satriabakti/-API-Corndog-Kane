@@ -13,6 +13,7 @@ function mapProductFromPrisma(prismaProduct: any) {
 		...prismaProduct,
 		name: prismaProduct.product_master?.name || '',
 		category: prismaProduct.product_master?.category || null,
+		image_path: prismaProduct.image_path || null,
 		// Remove product_master from the result to avoid confusion
 		product_master: undefined,
 	};

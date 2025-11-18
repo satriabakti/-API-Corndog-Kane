@@ -133,7 +133,7 @@ export type TOrderDetailResponse = {
 export type TMyOrderResponse = {
   id: number;
   invoice_number: string;
-  date: string;
+  date: string; // Full ISO timestamp with time
   payment_method: string;
   total_price: number;
   employee: {
@@ -153,6 +153,7 @@ export type TMyOrderResponse = {
     sub_total_price: number;
     total_price: number;
     product_name?: string;
+    image_path?: string | null;
     sub_items?: {
       id: number;
       product_id: number;
@@ -160,6 +161,7 @@ export type TMyOrderResponse = {
       price: number;
       total_price: number;
       product_name?: string;
+      image_path?: string | null;
     }[];
   }[];
 };

@@ -237,6 +237,7 @@ export class OrderResponseMapper {
       price: number;
       product: {
         name: string;
+        image_path?: string | null;
       } | null;
       sub_items?: Array<{
         id: number;
@@ -245,6 +246,7 @@ export class OrderResponseMapper {
         price: number;
         product: {
           name: string;
+          image_path?: string | null;
         } | null;
       }>;
     }>;
@@ -262,6 +264,7 @@ export class OrderResponseMapper {
           price: subItemPrice,
           total_price: subItemTotalPrice,
           product_name: subItem.product?.name,
+          image_path: subItem.product?.image_path || null,
         };
       }) || [];
 
@@ -278,6 +281,7 @@ export class OrderResponseMapper {
         sub_total_price: subTotalPrice,
         total_price: totalPrice,
         product_name: item.product?.name,
+        image_path: item.product?.image_path || null,
         sub_items: subItems.length > 0 ? subItems : undefined,
       };
     });
@@ -288,7 +292,7 @@ export class OrderResponseMapper {
     return {
       id: order.id,
       invoice_number: order.invoice_number,
-      date: order.createdAt.toISOString().split('T')[0],
+      date: order.createdAt.toISOString(), // Full timestamp with time
       payment_method: order.payment_method,
       total_price: orderTotalPrice,
       employee: {

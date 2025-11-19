@@ -11,7 +11,8 @@ type TDataMetadataResponse<T, M> = {
 
 // Generic mapper interface for response mapping
 interface ResponseMapper<TEntity, TResponse> {
-  toListResponse(entity: TEntity): TResponse;
+  toListResponse(entities: TEntity[] | TEntity): TResponse[] | TResponse;
+  toResponse?(entity: TEntity): TResponse;
 }
 export default class Controller<T, M> {
 	protected getSuccessResponse(
@@ -99,8 +100,9 @@ export default class Controller<T, M> {
 		return async (req: Request, res: Response) => {
 			try {
 				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
-				const pageNum = page ? parseInt(page as string) : 1;
-				const limitNum = limit ? parseInt(limit as string) : undefined;
+				// Use validated defaults from pagination schema (page=1, limit=10)
+				const pageNum = page ? parseInt(page as string, 10) : 1;
+				const limitNum = limit ? parseInt(limit as string, 10) : 10;
 				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				
 				// Build search config, filtering out undefined/invalid values
@@ -131,9 +133,7 @@ export default class Controller<T, M> {
 					outletId
 				);
 
-				const dataMapped = result.data.map((d: E) =>
-					mapperClass.toListResponse(d)
-				);
+				const dataMapped = mapperClass.toListResponse(result.data);
 
 				const metadata: TMetadataResponse = {
 					page: result.page,
@@ -199,10 +199,14 @@ export default class Controller<T, M> {
 				const requestData = this.convertToCamelCase(req.body);
 				const newEntity = await serviceClass.create(requestData as E);
 				
+				const mappedData = Array.isArray(newEntity) 
+					? mapperClass.toListResponse(newEntity)
+					: mapperClass.toResponse ? mapperClass.toResponse(newEntity) : mapperClass.toListResponse([newEntity]);
+				
 				return this.getSuccessResponse(
 					res,
 					{
-						data: mapperClass.toListResponse(newEntity) as TResponseItem,
+						data: mappedData as TResponseItem,
 						metadata: {} as M,
 					},
 					successMessage
@@ -326,10 +330,14 @@ export default class Controller<T, M> {
 					);
 				}
 
+				const mappedData = Array.isArray(updatedEntity)
+					? mapperClass.toListResponse(updatedEntity)
+					: mapperClass.toResponse ? mapperClass.toResponse(updatedEntity) : mapperClass.toListResponse([updatedEntity]);
+				
 				return this.getSuccessResponse(
 					res,
 					{
-						data: mapperClass.toListResponse(updatedEntity) as TResponseItem,
+						data: mappedData as TResponseItem,
 						metadata: {} as M,
 					},
 					successMessage

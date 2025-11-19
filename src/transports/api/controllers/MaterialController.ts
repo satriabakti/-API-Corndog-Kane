@@ -81,8 +81,9 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
   getBuyList = () => {
     return async (req: Request, res: Response) => {
       try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        // Use validated pagination params from middleware with defaults
+        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
         
         const { data, total } = await this.materialService.getBuyList(page, limit);
         
@@ -133,8 +134,9 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
   getStocksList = () => {
     return async (req: Request, res: Response) => {
       try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        // Use validated pagination params from middleware with defaults
+        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
         
         const { data, total } = await this.materialService.getStocksList(page, limit);
         const mappedResults: TMaterialInventoryGetResponse[] = data.map(item => 

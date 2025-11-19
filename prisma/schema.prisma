@@ -681,6 +681,7 @@ model AccountCategory {
 model AccountType {
   id                  Int             @id @default(autoincrement())
   name                String          @unique
+  code                String?         @unique
   description         String?
   account_category_id Int
   account_category    AccountCategory @relation(fields: [account_category_id], references: [id])

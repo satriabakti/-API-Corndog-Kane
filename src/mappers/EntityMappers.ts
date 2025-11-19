@@ -16,6 +16,7 @@ import { ProductMasterMapperEntity } from "./mappers/ProductMasterEntity";
 import { PayrollMapperEntity } from "./mappers/PayrollMapperEntity";
 import { AccountMapperEntity } from "./mappers/AccountMapperEntity";
 import { AccountCategoryMapperEntity } from "./mappers/AccountCategoryMapperEntity";
+import { TransactionMapperEntity } from "./mappers/TransactionMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
 	order: OrderMapperEntity,
@@ -35,6 +36,7 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
 	productMaster: ProductMasterMapperEntity,
 	account: AccountMapperEntity,
 	accountCategory: AccountCategoryMapperEntity,
+	transaction: TransactionMapperEntity,
 };
 
 /**

@@ -58,8 +58,9 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 	getBuyList(inventoryService: InventoryService) {
 		return async (req: Request, res: Response) => {
 			try {
-				const page = parseInt(req.query.page as string) || 1;
-				const limit = parseInt(req.query.limit as string) || 10;
+				// Use validated pagination params from middleware with defaults
+				const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+				const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
 				// Call service - returns entity
 				const { data, total } = await inventoryService.getBuyList(page, limit);

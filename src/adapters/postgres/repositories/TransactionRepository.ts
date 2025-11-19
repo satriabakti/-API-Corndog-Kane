@@ -3,14 +3,15 @@ import { TransactionRepository as ITransactionRepository } from "../../../core/r
 import { PrismaClient } from "@prisma/client";
 import { TransactionMapper } from "../../../mappers/mappers/TransactionMapper";
 import PostgresAdapter from "../instance";
+import { AccountTypeBalance, MonthlyBalance } from "../../../core/entities/finance/report";
+import Repository from "./Repository";
 
-export class TransactionRepository implements ITransactionRepository
+export class TransactionRepository extends Repository<TTransaction | TTransactionWithID> implements ITransactionRepository
 {
-  protected prisma: PrismaClient;
   public mapper: TransactionMapper;
-  
+
   constructor() {
-    this.prisma = PostgresAdapter.client;
+    super("transaction");
     this.mapper = new TransactionMapper();
   }
 
@@ -102,6 +103,72 @@ export class TransactionRepository implements ITransactionRepository
     return transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
   }
 
+  /**
+   * Override getAll to include account relation and order by transaction_date
+   */
+  async getAll(
+    page: number = 1,
+    limit: number = 10,
+    search?: { field: string; value: string }[],
+    filters?: Record<string, any>,
+    orderBy?: Record<string, 'asc' | 'desc'>
+  ) {
+    // Use custom query to include account relation
+    const skip = (page - 1) * limit;
+    const where: Record<string, any> = filters || {};
+
+    // Add search conditions
+    if (search && search.length > 0) {
+      const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
+      
+      if (validSearch.length > 0) {
+        const searchConditions = validSearch.map(({ field, value }) => ({
+          [field]: {
+            contains: value,
+            mode: 'insensitive'
+          }
+        }));
+        
+        if (searchConditions.length > 1) {
+          where.OR = searchConditions;
+        } else {
+          Object.assign(where, searchConditions[0]);
+        }
+      }
+    }
+
+    // Get total count
+    const total = await this.prisma.transaction.count({ where });
+
+    // Get transactions with account relation
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: orderBy || { transaction_date: 'desc' },
+      include: {
+        account: {
+          select: {
+            id: true,
+            name: true,
+            number: true
+          }
+        }
+      }
+    });
+
+    const data = transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages
+    };
+  }
+
   async getTransactionsByDateRange(
     startDate: Date,
     endDate: Date,
@@ -145,20 +212,164 @@ export class TransactionRepository implements ITransactionRepository
     return transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
   }
 
-  async getAll(): Promise<{ data: TTransactionWithID[]; total: number; page: number; limit: number; totalPages: number; }> {
-    const transactions = await this.getAllTransactions();
-    return {
-      data: transactions,
-      total: transactions.length,
-      page: 1,
-      limit: transactions.length,
-      totalPages: 1
-    };
-  }
-
   async delete(id: string): Promise<void> {
     await this.prisma.transaction.delete({
       where: { id: parseInt(id) }
     });
+  }
+
+  /**
+   * Get monthly balances aggregated by account types
+   * Filters transactions by date range and account types/numbers
+   * Returns monthly breakdown of income, expense, and balance for each account type
+   */
+  async getMonthlyBalancesByAccountTypes(
+    startDate: Date,
+    endDate: Date,
+    accountTypeCodes: string[],
+    accountNumbers: string[]
+  ): Promise<AccountTypeBalance[]> {
+    // Build filter for accounts
+    const accountFilter: any = {
+      OR: []
+    };
+
+    // Add account type code filter
+    if (accountTypeCodes.length > 0) {
+      accountFilter.OR.push({
+        account_type: {
+          code: {
+            in: accountTypeCodes
+          }
+        }
+      });
+    }
+
+    // Add specific account numbers filter
+    if (accountNumbers.length > 0) {
+      accountFilter.OR.push({
+        number: {
+          in: accountNumbers
+        }
+      });
+    }
+
+    // If no filters, return empty
+    if (accountFilter.OR.length === 0) {
+      return [];
+    }
+
+    // Fetch all relevant transactions
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        transaction_date: {
+          gte: startDate,
+          lte: endDate
+        },
+        account: accountFilter
+      },
+      include: {
+        account: {
+          include: {
+            account_type: {
+              select: {
+                code: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { transaction_date: 'asc' }
+      ]
+    });
+
+    // Group by account type code and month
+    const groupedData = new Map<string, { 
+      name: string; 
+      monthly: Map<string, { income: number; expense: number }> 
+    }>();
+
+    transactions.forEach(txn => {
+      const typeCode = txn.account.account_type?.code || 'UNKNOWN';
+      const typeName = txn.account.account_type?.name || 'Unknown Type';
+      const monthKey = this.formatMonthKey(txn.transaction_date);
+
+      // Initialize type group if needed
+      if (!groupedData.has(typeCode)) {
+        groupedData.set(typeCode, {
+          name: typeName,
+          monthly: new Map()
+        });
+      }
+
+      const typeGroup = groupedData.get(typeCode)!;
+
+      // Initialize month if needed
+      if (!typeGroup.monthly.has(monthKey)) {
+        typeGroup.monthly.set(monthKey, { income: 0, expense: 0 });
+      }
+
+      const monthData = typeGroup.monthly.get(monthKey)!;
+
+      // Aggregate amounts
+      if (txn.transaction_type === 'INCOME') {
+        monthData.income += txn.amount;
+      } else if (txn.transaction_type === 'EXPENSE') {
+        monthData.expense += txn.amount;
+      }
+    });
+
+    // Generate month range
+    const months = this.generateMonthRange(startDate, endDate);
+
+    // Build result
+    const result: AccountTypeBalance[] = [];
+
+    groupedData.forEach((typeData, typeCode) => {
+      const monthly: MonthlyBalance[] = months.map(month => {
+        const data = typeData.monthly.get(month) || { income: 0, expense: 0 };
+        return {
+          month,
+          income: data.income,
+          expense: data.expense,
+          balance: data.income - data.expense
+        };
+      });
+
+      result.push({
+        account_type_code: typeCode,
+        account_type_name: typeData.name,
+        monthly
+      });
+    });
+
+    return result;
+  }
+
+  /**
+   * Format date to month key (YYYY-MM)
+   */
+  private formatMonthKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  /**
+   * Generate array of month keys from start to end date
+   */
+  private generateMonthRange(startDate: Date, endDate: Date): string[] {
+    const months: string[] = [];
+    const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+    while (current <= end) {
+      months.push(this.formatMonthKey(current));
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    return months;
   }
 }

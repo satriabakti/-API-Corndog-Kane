@@ -14,30 +14,8 @@ export class AccountCategoryController extends Controller<TAccountCategoryGetRes
     this.accountCategoryService = new AccountCategoryService(new AccountCategoryRepository());
   }
 
+  // Using generic findAll pattern with pagination support
   getAll = () => {
-    return async (req: Request, res: Response) => {
-      try {
-        const categories = await this.accountCategoryService.getAll();
-        const mappedResults = AccountCategoryResponseMapper.toListResponse(categories);
-        
-        return this.getSuccessResponse(
-          res,
-          {
-            data: mappedResults,
-            metadata: {} as TMetadataResponse,
-          },
-          "Account categories retrieved successfully"
-        );
-      } catch (error) {
-        return this.handleError(
-          res,
-          error,
-          "Failed to retrieve account categories",
-          500,
-          [] as TAccountCategoryGetResponse[],
-          {} as TMetadataResponse
-        );
-      }
-    };
+    return this.findAll(this.accountCategoryService, AccountCategoryResponseMapper);
   }
 }

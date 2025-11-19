@@ -7,14 +7,16 @@ import {
   getTransactionByIdSchema,
   generateReportSchema
 } from '../../validations/transaction.validation';
+import { getPaginationSchema } from '../../validations/pagination.validation';
 import { TransactionController } from '../../controllers/TransactionController';
 
 const router = express.Router();
 const transactionController = new TransactionController();
 
-// GET all transactions
+// GET all transactions with pagination
 router.get(
   "/",
+  validate(getPaginationSchema),
   transactionController.getAll()
 );
 

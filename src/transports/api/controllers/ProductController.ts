@@ -166,8 +166,9 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   getStocksList = () => {
     return async (req: Request, res: Response) => {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      // Use validated pagination params from middleware with defaults
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       
       const { data, total } = await this.productService.getStocksList(page, limit);
       const mappedResults: TProductInventoryGetResponse[] = data.map(item => 

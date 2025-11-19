@@ -110,8 +110,8 @@ export class AccountRepository
    * Override getAll to include account_category filter
    */
   async getAll(
-    page?: number,
-    limit?: number,
+    page: number = 1,
+    limit: number = 10,
     search?: { field: string; value: string }[],
     filters?: Record<string, any>,
     orderBy?: Record<string, 'asc' | 'desc'>

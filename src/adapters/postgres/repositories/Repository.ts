@@ -16,8 +16,9 @@ import { TOrder } from "../../../core/entities/order/order";
 import { TProduct, TProductWithID } from "../../../core/entities/product/product";
 import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
 import { TPayroll } from "../../../core/entities/payroll/payroll";
+import { TTransaction, TTransactionWithID } from "../../../core/entities/finance/transaction";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID | TPayroll | TMasterProduct| TMasterProductWithID;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID | TPayroll | TMasterProduct| TMasterProductWithID | TTransaction | TTransactionWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -183,24 +184,24 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 	}
 
 	/**
-	 * Get all records with pagination and search
-	 * @param page - Page number (1-based)
-	 * @param limit - Records per page (if undefined, get all data)
-	 * @param search - Search configuration array for LIKE queries
+	 * Get all records with pagination, search, and filters
+	 * @param page - Current page (default: 1)
+	 * @param limit - Records per page (default: 10, undefined returns all)
+	 * @param search - LIKE search conditions
 	 * @param filters - Exact match filters
 	 * @param orderBy - Sort configuration
 	 */
 	async getAll(
 		page: number = 1,
-		limit?: number,
+		limit: number = 10,
 		search?: SearchConfig[],
 		filters?: Record<string, unknown>,
 		orderBy?: Record<string, 'asc' | 'desc'>
 	): Promise<PaginationResult<T>> {
 		const model = this.getModel();
 		
-		// Calculate skip for pagination only if limit is provided
-		const skip = limit ? (page - 1) * limit : undefined;
+		// Calculate skip for pagination
+		const skip = (page - 1) * limit;
 		
 		// Build where clause
 		const where: Record<string, unknown> = {};
@@ -263,22 +264,22 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		// Get total count for pagination
 		const total = await model.count({ where: sanitizedWhere });
 		console.log(where);
-		// Get records - if limit is undefined, get all data without skip/take
+		// Get records with pagination
 		const records = await model.findMany({
 			where: sanitizedWhere,
-			...(skip !== undefined && { skip }),
-			...(limit !== undefined && { take: limit }),
+			skip,
+			take: limit,
 			orderBy: orderBy || { id: 'asc' }, // Default sort by id ascending
 			include: this.mapper.getIncludes(), // Include all configured relations
 		});
 		const data = this.mapper.mapToEntities(records);
-		const totalPages = limit ? Math.ceil(total / limit) : 1;
+		const totalPages = Math.ceil(total / limit);
 		
 		return {
 			data,
 			total,
 			page,
-			limit: limit || total, // If no limit, return total count as limit
+			limit,
 			totalPages
 		};
 	}

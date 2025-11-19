@@ -14,22 +14,39 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
     this.accountService = new AccountService(new AccountRepository());
   }
 
+  // Custom getAll to handle AccountResponseMapper's array-based toListResponse
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
-        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-        const categoryId = req.query.category_id ? parseInt(req.query.category_id as string) : undefined;
-        const { search_key, search_value } = req.query;
+        const { page, limit, search_key, search_value, category_id, ...filters } = req.query;
+        // Use validated defaults from pagination schema (page=1, limit=10)
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+        const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
+        
+        // Build search config
+        const search =
+          search_key && 
+          search_value && 
+          search_key !== 'undefined' && 
+          search_value !== 'undefined'
+            ? [{ field: search_key as string, value: search_value as string }]
+            : undefined;
+        
+        // Add category filter if provided
+        const combinedFilters = categoryId 
+          ? { ...filters, account_category_id: categoryId }
+          : Object.keys(filters).length > 0 ? filters : undefined;
         
         const result = await this.accountService.findAll(
-          page,
-          limit,
-          search_key && search_value ? [{ field: search_key as string, value: search_value as string }] : undefined,
-          categoryId ? { account_category_id: categoryId } : undefined
+          pageNum,
+          limitNum,
+          search,
+          combinedFilters as any
         );
         
-        const mappedResults = AccountResponseMapper.toListResponse(result.data);
+        // AccountResponseMapper expects an array
+        const mappedResults = AccountResponseMapper.toListResponse(result.data as any);
         
         const metadata: TMetadataResponse = {
           page: result.page,
@@ -40,21 +57,22 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
         
         return this.getSuccessResponse(
           res,
-          {
-            data: mappedResults,
-            metadata,
-          },
+          { data: mappedResults, metadata },
           "Accounts retrieved successfully"
         );
       } catch (error) {
-        console.error('Error retrieving accounts:', error);
         return this.handleError(
           res,
           error,
-          error instanceof Error ? error.message : "Failed to retrieve accounts",
+          "Failed to retrieve accounts",
           500,
           [] as TAccountGetResponse[],
-          {} as TMetadataResponse
+          {
+            page: 1,
+            limit: 10,
+            total_records: 0,
+            total_pages: 0,
+          } as TMetadataResponse
         );
       }
     };

@@ -87,9 +87,12 @@ export async function seedFinance() {
   // Asset Types
   const assetLancar = await prisma.accountType.upsert({
     where: { name: "Asset Lancar" },
-    update: {},
+    update: {
+      code: "ASSET_CURRENT",
+    },
     create: {
       name: "Asset Lancar",
+      code: "ASSET_CURRENT",
       description: "Aset yang mudah dicairkan",
       account_category_id: assetCategory.id,
       is_active: true,
@@ -98,9 +101,12 @@ export async function seedFinance() {
 
   const assetTetap = await prisma.accountType.upsert({
     where: { name: "Asset Tetap" },
-    update: {},
+    update: {
+      code: "ASSET_FIXED",
+    },
     create: {
       name: "Asset Tetap",
+      code: "ASSET_FIXED",
       description: "Aset jangka panjang",
       account_category_id: assetCategory.id,
       is_active: true,
@@ -110,9 +116,12 @@ export async function seedFinance() {
   // Liability Types
   const kewajibanJangkaPendek = await prisma.accountType.upsert({
     where: { name: "Kewajiban Jangka Pendek" },
-    update: {},
+    update: {
+      code: "LIABILITY_SHORT",
+    },
     create: {
       name: "Kewajiban Jangka Pendek",
+      code: "LIABILITY_SHORT",
       description: "Kewajiban yang harus dilunasi dalam waktu dekat",
       account_category_id: liabilityCategory.id,
       is_active: true,
@@ -121,9 +130,12 @@ export async function seedFinance() {
 
   const kewajibanJangkaPanjang = await prisma.accountType.upsert({
     where: { name: "Kewajiban Jangka Panjang" },
-    update: {},
+    update: {
+      code: "LIABILITY_LONG",
+    },
     create: {
       name: "Kewajiban Jangka Panjang",
+      code: "LIABILITY_LONG",
       description: "Kewajiban jangka panjang",
       account_category_id: liabilityCategory.id,
       is_active: true,
@@ -133,9 +145,12 @@ export async function seedFinance() {
   // Equity Type
   const ekuitas = await prisma.accountType.upsert({
     where: { name: "Ekuitas" },
-    update: {},
+    update: {
+      code: "EQUITY",
+    },
     create: {
       name: "Ekuitas",
+      code: "EQUITY",
       description: "Modal pemilik",
       account_category_id: equityCategory.id,
       is_active: true,
@@ -145,9 +160,12 @@ export async function seedFinance() {
   // Revenue Type
   const pendapatan = await prisma.accountType.upsert({
     where: { name: "Pendapatan" },
-    update: {},
+    update: {
+      code: "REVENUE",
+    },
     create: {
       name: "Pendapatan",
+      code: "REVENUE",
       description: "Pendapatan usaha",
       account_category_id: revenueCategory.id,
       is_active: true,
@@ -157,9 +175,12 @@ export async function seedFinance() {
   // COGS Type
   const hargaPokokPenjualan = await prisma.accountType.upsert({
     where: { name: "Harga Pokok Penjualan" },
-    update: {},
+    update: {
+      code: "COGS",
+    },
     create: {
       name: "Harga Pokok Penjualan",
+      code: "COGS",
       description: "HPP",
       account_category_id: cogsCategory.id,
       is_active: true,
@@ -169,9 +190,12 @@ export async function seedFinance() {
   // Operational Expense Types
   const umumAdmin = await prisma.accountType.upsert({
     where: { name: "Umum & Admin" },
-    update: {},
+    update: {
+      code: "GA_EXPENSE",
+    },
     create: {
       name: "Umum & Admin",
+      code: "GA_EXPENSE",
       description: "Beban umum dan administrasi",
       account_category_id: opexCategory.id,
       is_active: true,
@@ -180,9 +204,12 @@ export async function seedFinance() {
 
   const bebanPenjualanOperasional = await prisma.accountType.upsert({
     where: { name: "Beban Penjualan & Operasional" },
-    update: {},
+    update: {
+      code: "SALES_EXPENSE",
+    },
     create: {
       name: "Beban Penjualan & Operasional",
+      code: "SALES_EXPENSE",
       description: "Beban penjualan dan operasional",
       account_category_id: opexCategory.id,
       is_active: true,
@@ -192,9 +219,12 @@ export async function seedFinance() {
   // Non-Operational Types
   const pendapatanNonOperasional = await prisma.accountType.upsert({
     where: { name: "Pendapatan Non-Operasional" },
-    update: {},
+    update: {
+      code: "NON_OP_INCOME",
+    },
     create: {
       name: "Pendapatan Non-Operasional",
+      code: "NON_OP_INCOME",
       description: "Pendapatan di luar operasional utama",
       account_category_id: nonOpexCategory.id,
       is_active: true,
@@ -203,9 +233,12 @@ export async function seedFinance() {
 
   const bebanNonOperasional = await prisma.accountType.upsert({
     where: { name: "Beban Non-Operasional" },
-    update: {},
+    update: {
+      code: "NON_OP_EXPENSE",
+    },
     create: {
       name: "Beban Non-Operasional",
+      code: "NON_OP_EXPENSE",
       description: "Beban di luar operasional utama",
       account_category_id: nonOpexCategory.id,
       is_active: true,
@@ -248,11 +281,11 @@ export async function seedFinance() {
   });
 
   const piutangAccount = await prisma.account.upsert({
-    where: { number: "1201" },
+    where: { number: "1104" },
     update: {},
     create: {
       name: "Piutang Dagang",
-      number: "1201",
+      number: "1104",
       balance: 5000000,
       description: "Tagihan kepada pelanggan",
       account_type_id: assetLancar.id,
@@ -262,11 +295,11 @@ export async function seedFinance() {
   });
 
   const persediaanAccount = await prisma.account.upsert({
-    where: { number: "1301" },
+    where: { number: "1106" },
     update: {},
     create: {
       name: "Persediaan Bahan Baku",
-      number: "1301",
+      number: "1106",
       balance: 15000000,
       description: "Stok bahan baku corndog",
       account_type_id: assetLancar.id,
@@ -298,6 +331,20 @@ export async function seedFinance() {
       number: "1402",
       balance: 150000000,
       description: "Motor/mobil untuk delivery",
+      account_type_id: assetTetap.id,
+      account_category_id: assetCategory.id,
+      is_active: true,
+    },
+  });
+
+  const akumulasiPenyusutanAccount = await prisma.account.upsert({
+    where: { number: "1403" },
+    update: {},
+    create: {
+      name: "Akumulasi Penyusutan",
+      number: "1403",
+      balance: 0,
+      description: "Akumulasi penyusutan aset tetap",
       account_type_id: assetTetap.id,
       account_category_id: assetCategory.id,
       is_active: true,
@@ -393,15 +440,15 @@ export async function seedFinance() {
   });
 
   const pendapatanLainAccount = await prisma.account.upsert({
-    where: { number: "4201" },
+    where: { number: "4102" },
     update: {},
     create: {
       name: "Pendapatan Lain-lain",
-      number: "4201",
+      number: "4102",
       balance: 0,
       description: "Pendapatan di luar penjualan utama",
-      account_type_id: pendapatan.id,
-      account_category_id: revenueCategory.id,
+      account_type_id: pendapatanNonOperasional.id,
+      account_category_id: nonOpexCategory.id,
       is_active: true,
     },
   });
@@ -538,7 +585,7 @@ export async function seedFinance() {
 
   const accounts = [
     kasAccount, bankAccount, piutangAccount, persediaanAccount,
-    peralatanAccount, kendaraanAccount,
+    peralatanAccount, kendaraanAccount, akumulasiPenyusutanAccount,
     utangDagangAccount, utangGajiAccount, utangBankAccount,
     modalAccount, labaAccount,
     penjualanAccount, pendapatanLainAccount,

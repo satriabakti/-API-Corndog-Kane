@@ -18,18 +18,35 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
 
   getAllMasterProducts = async (req: Request, res: Response) => {
     try {
-      const {category_id} = req.query;
-      const masterProducts = await this.masterProductService.getAll({category_id:category_id ? parseInt(category_id as string, 10) : undefined});
-
-      const mappedResults: TMasterProductGetResponse[] = masterProducts.map(item =>
-        MasterProductResponseMapper.toResponse(item)
+      // Use validated pagination params from middleware with defaults
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+      const categoryId = req.query.category_id ? parseInt(req.query.category_id as string, 10) : undefined;
+      
+      // Get paginated results with category filter
+      const result = await this.masterProductService.findAll(
+        page,
+        limit,
+        undefined,
+        categoryId ? { category_id: categoryId } : undefined
       );
+
+      const mappedResults: TMasterProductGetResponse[] = result.data.map(item =>
+        MasterProductResponseMapper.toResponse(item as any)
+      );
+      
+      const metadata: TMetadataResponse = {
+        page: result.page,
+        limit: result.limit,
+        total_records: result.total,
+        total_pages: result.totalPages,
+      };
 
       return this.getSuccessResponse(
         res,
         {
           data: mappedResults,
-          metadata: {} as TMetadataResponse,
+          metadata,
         },
         "Master products retrieved successfully"
       );
@@ -40,7 +57,12 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
         "Failed to retrieve master products",
         500,
         [] as TMasterProductGetResponse[],
-        {} as TMetadataResponse
+        {
+          page: 1,
+          limit: 10,
+          total_records: 0,
+          total_pages: 0,
+        } as TMetadataResponse
       );
     }
   }

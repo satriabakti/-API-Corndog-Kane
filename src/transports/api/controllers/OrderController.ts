@@ -38,8 +38,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    */
   async getAllOrders(req: Request, res: Response) {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      // Use validated pagination params from middleware with defaults
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
       const result = await this.orderService.getAllOrders(page, limit);
 
@@ -85,8 +86,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    */
   async getMyOrders(req: AuthRequest, res: Response) {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      // Use validated pagination params from middleware with defaults
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const outletId = req.user?.outlet_id;
 
       if (!outletId) {

@@ -12,6 +12,7 @@ import { seedOrders, seedOrderMaterialUsages } from './seed/order.seeder';
 import { seedOutletProductRequests, seedOutletMaterialRequests } from './seed/outletRequest.seeder';
 import { seedPayrolls, seedPaymentBatches } from './seed/payroll.seeder';
 import { seedLogins } from './seed/login.seeder';
+import { seedFinance } from './seed/finance.seeder';
 
 async function main() {
   console.log('🚀 Starting comprehensive database seeding...\n');
@@ -112,6 +113,14 @@ async function main() {
     await seedPaymentBatches(); // Payment batches
     
     // ============================================================================
+    // PHASE 11: FINANCE MODULE - Chart of Accounts & Transactions
+    // ============================================================================
+    console.log('\n\n🏦 PHASE 11: Finance Module - Chart of Accounts\n');
+    console.log('═'.repeat(70));
+    
+    await seedFinance(); // Account categories, accounts, and sample transactions
+    
+    // ============================================================================
     // COMPLETION
     // ============================================================================
     console.log('\n\n' + '═'.repeat(70));
@@ -125,6 +134,7 @@ async function main() {
     console.log('   - Outlets: Outlets, Settings, Employee Assignments');
     console.log('   - POS: Orders, Order Items, Material Usage');
     console.log('   - SCM: Product & Material Requests');
+    console.log('   - Finance: Account Categories, Accounts, Transactions');
     console.log('\n🎉 Your database is now populated with realistic dummy data!');
     console.log('🔍 Use Prisma Studio to explore: npm run prisma:studio\n');
     

@@ -14,6 +14,8 @@ import { OutletMaterialRequestMapperEntity } from "./mappers/OutletMaterialReque
 import { OrderMapperEntity } from "./mappers/OrderMapperEntity";
 import { ProductMasterMapperEntity } from "./mappers/ProductMasterEntity";
 import { PayrollMapperEntity } from "./mappers/PayrollMapperEntity";
+import { AccountMapperEntity } from "./mappers/AccountMapperEntity";
+import { AccountCategoryMapperEntity } from "./mappers/AccountCategoryMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
 	order: OrderMapperEntity,
@@ -31,6 +33,8 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
 	outletMaterialRequest: OutletMaterialRequestMapperEntity,
 	payroll: PayrollMapperEntity,
 	productMaster: ProductMasterMapperEntity,
+	account: AccountMapperEntity,
+	accountCategory: AccountCategoryMapperEntity,
 };
 
 /**

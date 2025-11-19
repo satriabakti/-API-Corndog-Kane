@@ -59,7 +59,10 @@ type PrismaModelName =
 	| "materialOut"
 	| "outletProductRequest"
 	| "outletMaterialRequest"
-	| "productMaster";
+	| "productMaster"
+	| "account"
+	| "accountCategory"
+	| "transaction";
 
 // Field mapping configuration types
 export interface FieldMapping {

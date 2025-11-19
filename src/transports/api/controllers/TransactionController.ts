@@ -41,29 +41,42 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
-        // Use validated pagination params from middleware with defaults
-        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+        const { page, limit, search_key, search_value, ...filters } = req.query;
+        // Use validated defaults from pagination schema (page=1, limit=10)
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
         
-        const transactions = await this.transactionService.getAllTransactions();
-        const mappedResults = TransactionResponseMapper.toListResponse(transactions);
+        // Build search config
+        const search =
+          search_key && 
+          search_value && 
+          search_key !== 'undefined' && 
+          search_value !== 'undefined'
+            ? [{ field: search_key as string, value: search_value as string }]
+            : undefined;
         
-        // Calculate pagination from all results
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedData = mappedResults.slice(startIndex, endIndex);
+        // Get paginated transactions
+        const result = await this.transactionService.getAllTransactions(
+          pageNum,
+          limitNum,
+          search,
+          filters as Record<string, any>
+        );
+        
+        // Map to response format
+        const mappedData = TransactionResponseMapper.toListResponse(result.data);
         
         const metadata: TMetadataResponse = {
-          page,
-          limit,
-          total_records: mappedResults.length,
-          total_pages: Math.ceil(mappedResults.length / limit),
+          page: result.page,
+          limit: result.limit,
+          total_records: result.total,
+          total_pages: result.totalPages,
         };
         
         return this.getSuccessResponse(
           res,
           {
-            data: paginatedData,
+            data: mappedData,
             metadata,
           },
           "Transactions retrieved successfully"

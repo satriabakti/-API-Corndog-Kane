@@ -168,8 +168,13 @@ export default class TransactionService {
     });
   }
 
-  async getAllTransactions(): Promise<TTransactionWithID[]> {
-    return this.repository.getAllTransactions();
+  async getAllTransactions(
+    page: number = 1,
+    limit: number = 10,
+    search?: { field: string; value: string }[],
+    filters?: Record<string, any>
+  ) {
+    return this.repository.getAll(page, limit, search, filters);
   }
 
   async generateReport(

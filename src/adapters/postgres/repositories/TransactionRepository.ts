@@ -4,14 +4,14 @@ import { PrismaClient } from "@prisma/client";
 import { TransactionMapper } from "../../../mappers/mappers/TransactionMapper";
 import PostgresAdapter from "../instance";
 import { AccountTypeBalance, MonthlyBalance } from "../../../core/entities/finance/report";
+import Repository from "./Repository";
 
-export class TransactionRepository implements ITransactionRepository
+export class TransactionRepository extends Repository<TTransaction | TTransactionWithID> implements ITransactionRepository
 {
-  protected prisma: PrismaClient;
   public mapper: TransactionMapper;
-  
+
   constructor() {
-    this.prisma = PostgresAdapter.client;
+    super("transaction");
     this.mapper = new TransactionMapper();
   }
 
@@ -103,6 +103,72 @@ export class TransactionRepository implements ITransactionRepository
     return transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
   }
 
+  /**
+   * Override getAll to include account relation and order by transaction_date
+   */
+  async getAll(
+    page: number = 1,
+    limit: number = 10,
+    search?: { field: string; value: string }[],
+    filters?: Record<string, any>,
+    orderBy?: Record<string, 'asc' | 'desc'>
+  ) {
+    // Use custom query to include account relation
+    const skip = (page - 1) * limit;
+    const where: Record<string, any> = filters || {};
+
+    // Add search conditions
+    if (search && search.length > 0) {
+      const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
+      
+      if (validSearch.length > 0) {
+        const searchConditions = validSearch.map(({ field, value }) => ({
+          [field]: {
+            contains: value,
+            mode: 'insensitive'
+          }
+        }));
+        
+        if (searchConditions.length > 1) {
+          where.OR = searchConditions;
+        } else {
+          Object.assign(where, searchConditions[0]);
+        }
+      }
+    }
+
+    // Get total count
+    const total = await this.prisma.transaction.count({ where });
+
+    // Get transactions with account relation
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: orderBy || { transaction_date: 'desc' },
+      include: {
+        account: {
+          select: {
+            id: true,
+            name: true,
+            number: true
+          }
+        }
+      }
+    });
+
+    const data = transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages
+    };
+  }
+
   async getTransactionsByDateRange(
     startDate: Date,
     endDate: Date,
@@ -144,17 +210,6 @@ export class TransactionRepository implements ITransactionRepository
     });
 
     return transactions.map(t => this.mapper.mapToEntity(t) as TTransactionWithID);
-  }
-
-  async getAll(): Promise<{ data: TTransactionWithID[]; total: number; page: number; limit: number; totalPages: number; }> {
-    const transactions = await this.getAllTransactions();
-    return {
-      data: transactions,
-      total: transactions.length,
-      page: 1,
-      limit: transactions.length,
-      totalPages: 1
-    };
   }
 
   async delete(id: string): Promise<void> {

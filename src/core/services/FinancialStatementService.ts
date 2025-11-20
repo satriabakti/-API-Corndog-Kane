@@ -96,8 +96,8 @@ export class FinancialStatementService {
   ): Promise<SectionResult[]> {
     const mapping = (financeMapping as any).neraca as MappingType[];
     const results = await this.processMapping(mapping, startDate, endDate, months);
-    // Cleanup all sections after calculations complete
-    return results.map(section => this.cleanupSectionResult(section));
+    // Cleanup all sections after calculations complete with summed amounts
+    return results.map(section => this.cleanupSectionResultWithSum(section));
   }
 
   /**
@@ -134,8 +134,8 @@ export class FinancialStatementService {
       }
     }
     
-    // Cleanup all sections after calculations complete
-    return results.map(section => this.cleanupSectionResult(section));
+    // Cleanup all sections after calculations complete with summed amounts
+    return results.map(section => this.cleanupSectionResultWithSum(section));
   }
 
   /**
@@ -249,6 +249,30 @@ export class FinancialStatementService {
     // Only include subsections if not empty
     if (section.subsections && section.subsections.length > 0) {
       cleaned.subsections = section.subsections.map(sub => this.cleanupSectionResult(sub));
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Clean up section result with last month value for Neraca and Cashflow
+   * Removes: section, calculation fields
+   * Removes: subsections if empty
+   * Converts: amount array to single number (last month value - ending balance)
+   * 
+   * For Balance Sheet (Neraca) and Cashflow, we show the ending balance (last month)
+   * not the sum of all months, as these are point-in-time statements.
+   */
+  private cleanupSectionResultWithSum(section: SectionResult): SectionResult {
+    const cleaned: any = {
+      label: section.label,
+      // Take the last month value (ending balance) instead of summing
+      amount: section.amount.length > 0 ? section.amount[section.amount.length - 1] : 0
+    };
+
+    // Only include subsections if not empty
+    if (section.subsections && section.subsections.length > 0) {
+      cleaned.subsections = section.subsections.map(sub => this.cleanupSectionResultWithSum(sub));
     }
 
     return cleaned;

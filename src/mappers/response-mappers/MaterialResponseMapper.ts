@@ -2,10 +2,9 @@ import { TMaterialGetResponse, TMaterialWithID } from "../../core/entities/mater
 
 export class MaterialResponseMapper {
   /**
-   * Map Material entity to list response format (simplified)
-   * Used in findAll endpoints
+   * Map single material entity to response format
    */
-  static toListResponse(material: TMaterialWithID & { stock?: number }): TMaterialGetResponse {
+  static toResponse(material: TMaterialWithID & { stock?: number }): TMaterialGetResponse {
     return {
       id: material.id,
       name: material.name,
@@ -15,5 +14,13 @@ export class MaterialResponseMapper {
       created_at: material.createdAt ?? new Date(),
       updated_at: material.updatedAt ?? new Date(),
     };
+  }
+
+  /**
+   * Map array of material entities to list response format
+   * Used in findAll endpoints
+   */
+  static toListResponse(materials: (TMaterialWithID & { stock?: number })[]): TMaterialGetResponse[] {
+    return materials.map(material => this.toResponse(material));
   }
 }

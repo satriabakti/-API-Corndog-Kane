@@ -448,21 +448,21 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      // Get the day and time from checkin
-      const checkinDate = new Date(todayAttendance.checkinTime);
+      // Get the current day (not from checkin time, but from current time)
+      const now = new Date();
       const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-      const day = days[checkinDate.getDay()];
-      const checkinTimeStr = `${String(checkinDate.getHours()).padStart(2, '0')}:${String(checkinDate.getMinutes()).padStart(2, '0')}:${String(checkinDate.getSeconds()).padStart(2, '0')}`;
+      const day = days[now.getDay()];
+      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-      // Find the matching setting
-      const setting = await outletRepository.getSettingForCheckin(outletId, day, checkinTimeStr);
+      // Find the matching setting for today
+      const setting = await outletRepository.getSettingForCheckin(outletId, day, currentTimeStr);
       
       if (!setting) {
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'setting', message: 'No matching outlet setting found for your check-in time', type: 'not_found' }],
-          'No matching outlet setting found for your check-in time',
+          [{ field: 'setting', message: 'No outlet schedule found for today', type: 'not_found' }],
+          'No outlet schedule found for today',
           404
         );
       }

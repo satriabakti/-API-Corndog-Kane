@@ -68,9 +68,6 @@ export default class EmployeeService extends Service<TEmployee> {
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     const outletTimeInMinutes = outletHour * 60 + outletMinute;
     
-    console.log(`Current time: ${currentHour}:${currentMinute} (${currentTimeInMinutes} minutes)`);
-    console.log(`Outlet checkout time: ${outletHour}:${outletMinute} (${outletTimeInMinutes} minutes)`);
-    
     if (currentTimeInMinutes < outletTimeInMinutes) {
       const formattedOutletTime = `${String(outletHour).padStart(2, '0')}:${String(outletMinute).padStart(2, '0')}`;
       const formattedCurrentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;

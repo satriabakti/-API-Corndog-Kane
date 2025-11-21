@@ -355,7 +355,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       const attendance = await employeeService.checkin(
         employeeId, 
-        outletId, 
+        parseInt(String(outletId)), // Ensure outletId is a number
         imagePath, 
         lateNotes, 
         latePresentProof

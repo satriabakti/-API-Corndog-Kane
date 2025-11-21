@@ -231,11 +231,26 @@ export default class EmployeeRepository
       },
     });
 
+    // Debug logging
+    console.log('Check-in Debug Info:', {
+      outletId,
+      currentDay: day,
+      currentTime: currentTimeStr,
+      settingsFound: settings.length,
+      settings: settings.map(s => ({
+        id: s.id,
+        check_in_time: s.check_in_time,
+        days: s.day
+      }))
+    });
+
     // Filter to get settings where check_in_time <= current time
     const validSettings = settings.filter(s => s.check_in_time <= currentTimeStr);
     
+    console.log('Valid settings after time filter:', validSettings.length);
+    
     if (validSettings.length === 0) {
-      throw new Error('No valid check-in time found for current time and day');
+      throw new Error(`No valid check-in time found for current time and day. Current: ${currentTimeStr} on ${day}. Settings found: ${settings.length}. Please check if outlet settings are configured correctly.`);
     }
 
     // Get the latest check_in_time
